@@ -80,7 +80,7 @@ class multi_head_att(torch.nn.Module):
         self.Wo = torch.nn.Linear(hidden_size,input_t)
 
         # dropout while dot prod between Wk and Wq
-        self.dropout = nn.Dropout(dropout)
+        self.dropout = torch.nn.Dropout(dropout)
 
     def get_Wk(self,coords_f):
         res = self.Wk(coords_f)
