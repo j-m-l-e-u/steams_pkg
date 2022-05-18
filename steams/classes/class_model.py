@@ -70,15 +70,15 @@ class class_model():
                     'loss': loss,
                     'index': index}, checkpoint_path)
 
-    # def export_onnx(self, path: str, name:str, class_xyv_,params:dict):
-    #     if params is not None:
-    #         if params['param']['opset_version'] is not None:
-    #             opset_version = params['param']['opset_version']
-    #         else:
-    #             opset_version = 9
-    #         # further params ...
-    #         if not os.path.exists(path):
-    #             os.mkdir(path)
-    #         model_path = os.path.join(path, name + "_model.onnx")
-    #         #torch.onnx.export(self.model, class_xyv_.get_rand_input().to(self.device), model_path,opset_version=opset_version)
-    #         torch.onnx.export(self.model, class_xyv_.get_rand_input(), model_path,opset_version=opset_version)
+    def export_onnx(self, path: str, name:str, class_xyv_,params:dict):
+        if params is not None:
+            if params['param']['opset_version'] is not None:
+                opset_version = params['param']['opset_version']
+            else:
+                opset_version = 9
+            # further params ...
+            if not os.path.exists(path):
+                os.mkdir(path)
+            model_path = os.path.join(path, name + "_model.onnx")
+            #torch.onnx.export(self.model, class_xyv_.get_rand_input().to(self.device), model_path,opset_version=opset_version)
+            torch.onnx.export(self.model, class_xyv_.get_rand_input(), model_path,opset_version=opset_version)

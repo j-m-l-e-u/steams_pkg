@@ -51,7 +51,10 @@ def k_fold_train_function(params:dict):
         pin_memory = False
 
     # Define the K-fold Cross Validator
-    kfold = KFold(n_splits=kfolds, shuffle=True)
+    kfold = KFold(n_splits=kfolds, shuffle=False) # False to keep a space and time logic
+    k_folds = open(os.path.join(resdir,"kfold.pkl"), 'wb')
+    pickle.dump(kfold, k_folds)
+
     data = class_xyv_x(params_data)
     loss_res = pd.DataFrame(columns=['fold', 'epoch', 'batch_size'])
     folds_index = []
@@ -65,6 +68,8 @@ def k_fold_train_function(params:dict):
         train_fold  = class_xyv_x(params_data,train_index)
         valid_fold  = class_xyv_x(params_data,valid_index)
         folds_index.append({'fold': fold, 'train_index': train_index, 'valid_index': valid_index})
+        f_folds = open(os.path.join(resdir,"fold_"+str(fold)+".pkl"), 'wb')
+        pickle.dump(folds_index, f_folds)
         train_fold.scale(True)
         valid_fold.scale(True)
         train_data_loader = DataLoader(train_fold,batch_size=batch_size, shuffle=False,sampler=None,batch_sampler=None,num_workers=num_workers,pin_memory=pin_memory)
@@ -86,7 +91,9 @@ def k_fold_train_function(params:dict):
             loss_valid_tmp = loss_valid_tmp.add_prefix('valid_')
             res = pd.concat([res,loss_train_tmp,loss_valid_tmp],axis=1)
             loss_res = pd.concat([loss_res,res],axis=0)
-            if (epoch % 5 == 0): model_.saveCheckpoint(resdir,"fold_"+str(fold)+"_"+str(epoch),epoch,opt,loss_train_tmp,train_index)
+            if (epoch % 5 == 0):
+                model_.saveCheckpoint(resdir,"fold_"+str(fold)+"_"+str(epoch),epoch,opt,loss_train_tmp,train_index)
+                loss_res.to_csv(os.path.join(resdir,"fold_"+str(fold)+"_"+str(epoch)+'loss.csv'))
 
             # early stopping
             if loss_valid_tmp.loc[0,'valid_'+crit_name[0]] < min_val_loss:
@@ -101,7 +108,7 @@ def k_fold_train_function(params:dict):
                 continue
 
         model_.save(resdir,"fold_"+str(fold))
-        #model_.export_onnx(resdir,"fold_"+str(fold),train_fold,params_export_onnx)
+        model_.export_onnx(resdir,"fold_"+str(fold),train_fold,params_export_onnx)
 
     # save the class_ts_x data
     f_data = open(data_filename, 'wb')
@@ -143,14 +150,15 @@ def k_fold_eval_function(params:dict):
     folds_index = pickle.load(f)
     for fold in folds_index:
         fold_i = folds_index.index(fold)
+        print('\n Fold: ',str(fold_i))
         metrics_filename = os.path.join(resdir,'metrics'+"_fold_"+str(fold_i)+'.csv')
         metrics_res = pd.DataFrame(columns=['fold', 'batch_size'])
         model_ = class_model(params_device)
         model_.load(os.path.join(sessiondir,"train"),"fold_"+str(fold_i))
         res = pd.DataFrame(columns=['fold', 'batch_size'])
-        for i in range(len(params_data['values']['values'])):
+        for i in range(len(params_data['target']['values'])):
             res = res.append({'fold': fold_i, 'batch_size':batch_size},ignore_index=True)
-        res = pd.concat([res,pd.DataFrame(data={'values': params_data['values']['values']})],axis=1)
+        res = pd.concat([res,pd.DataFrame(data={'values': params_data['target']['values']})],axis=1)
         valid_index = fold.get('valid_index')
         valid_fold  = class_xyv_x(params_data,valid_index)
         valid_fold.scale(True)

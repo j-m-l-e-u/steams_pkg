@@ -3,26 +3,27 @@ import math
 import pandas as pd
 import numpy as np
 
-# encoder-decoder, Nadaraya-Watson kernel attention with distance between keys and queries as score
-class ED_NW_att(torch.nn.Module):
-
+# Encoder, Nadaraya-Watson kernel attention with distance between keys and queries as score
+class MLP_NW_dist_att(torch.nn.Module):
+    """
+    MLP_NW_dist_att only work when number of fetures is identical to the number of target
+    """
     def __init__(self,device,input_size, hidden_size, output_size):
-        super(ED_NW_att, self).__init__()
+        super(MLP_NW_dist_att, self).__init__()
 
         self.device = device
 
-        # W_keys
+        # W_keys as an MLP
         self.Wk = torch.nn.Sequential(
             torch.nn.Linear(input_size, hidden_size),
             torch.nn.ReLU(),
             torch.nn.Linear(hidden_size, output_size))
 
-        # W_queries
+        # W_queries as an MLP
         self.Wq = torch.nn.Sequential(
             torch.nn.Linear(input_size, hidden_size),
             torch.nn.ReLU(),
             torch.nn.Linear(hidden_size, output_size))
-
 
     def get_Wk(self,coords_f):
         res = self.Wk(coords_f)
@@ -33,7 +34,6 @@ class ED_NW_att(torch.nn.Module):
         res = self.Wq(coords_t)
         res = res.to(self.device)
         return(res)
-
 
     def forward(self,coords_f,values_f,coords_t):
 
@@ -48,6 +48,73 @@ class ED_NW_att(torch.nn.Module):
 
         # prediction
         res = torch.einsum('bij,bik->bjk',self.attention_weights,values_f)
+
+        return(res)
+
+
+# MLP, Nadaraya-Watson kernel attention with distance between keys and queries as score
+# MLP of Q,K, V
+# FC of attention output
+class MLP_NW_dist_2_att(torch.nn.Module):
+
+    def __init__(self,device,input_k, input_q, input_v, input_t, hidden_size):
+        super(MLP_NW_dist_2_att, self).__init__()
+
+        self.device = device
+
+        # W_keys as an MLP
+        self.Wk = torch.nn.Sequential(
+            torch.nn.Linear(input_k, hidden_size),
+            torch.nn.ReLU(),
+            torch.nn.Linear(hidden_size, hidden_size))
+
+        # W_queries as an MLP
+        self.Wq = torch.nn.Sequential(
+            torch.nn.Linear(input_q, hidden_size),
+            torch.nn.ReLU(),
+            torch.nn.Linear(hidden_size, hidden_size))
+
+        # W_values as an MLP
+        self.Wv = torch.nn.Sequential(
+            torch.nn.Linear(input_v, hidden_size),
+            torch.nn.ReLU(),
+            torch.nn.Linear(hidden_size, hidden_size))
+
+        # W_ouput
+        self.Wo = torch.nn.Linear(hidden_size,input_t)
+
+
+    def get_Wk(self,coords_f):
+        res = self.Wk(coords_f)
+        res = res.to(self.device)
+        return(res)
+
+    def get_Wq(self,coords_t):
+        res = self.Wq(coords_t)
+        res = res.to(self.device)
+        return(res)
+
+    def get_Wv(self,values_f):
+        res = self.Wv(values_f)
+        res = res.to(self.device)
+        return(res)
+
+    def forward(self,coords_f,values_f,coords_t):
+
+        Wk = self.get_Wk(coords_f) # bij: 64x31x20
+        Wq = self.get_Wq(coords_t) # bkj: 64x10x20
+        Wv = self.get_Wv(values_f) # bij: 64x31x8
+
+        # score
+        score = torch.cdist(Wk,Wq, p=1).to(self.device)
+
+        # NW attention weight
+        self.attention_weights = torch.nn.functional.softmax(-(score)**2 / 2, dim=1) #bik 64, 31, 10
+
+        # prediction
+        output = torch.einsum('bik,bij->bkj',self.attention_weights,Wv) # => 64 10 20
+
+        res = self.Wo(output)
 
         return(res)
 
@@ -93,7 +160,7 @@ class multi_head_att(torch.nn.Module):
         return(res)
 
     def get_Wv(self,values_f):
-        res = self.Wq(values_f)
+        res = self.Wv(values_f)
         res = res.to(self.device)
         return(res)
 
@@ -127,7 +194,7 @@ class multi_head_att(torch.nn.Module):
         #######################
         # Concatenating heads #
         #######################
-        output = output.permute(0, 2, 1, 3)  # [Batch, SeqLen, Head, Dims] # b(j/h)hk
+        output = output.permute(0, 2, 1, 3)  # b(j/h)hk
         output = output.reshape(output.shape[0], output.shape[1]*output.shape[2], output.shape[3]) # bjk
         output = torch.transpose(output,2,1) # bkj
 

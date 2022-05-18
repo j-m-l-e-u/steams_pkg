@@ -4,6 +4,7 @@ import torch
 import random
 import math
 import os
+import numpy as np
 from steams.utils.scale import param_scale
 from steams.dictionnary.dictionnary_scaling import scaling_dict
 
@@ -13,11 +14,18 @@ class class_xyv_none():
         path= params['path']
         tab_dir = os.path.join(path,'tab')
         coordinates=params['coordinates']
-        values=params['values']
+
         self.nb_location = params['nb_location']
-        self.history_length = params["features"]["history_length"]
-        self.gap_length = params["target"]["gap_length"]
-        self.horizon_length = params["target"]["horizon_length"]
+
+        self.features=params['features']['values']
+        self.history_length = params['features']['history_length']
+
+        self.target=params['target']['values']
+        self.gap_length = params['target']['gap_length']
+        self.horizon_length = params['target']['horizon_length']
+        self.multi_loc = params["target"]["multi_loc"]
+        
+        values = np.unique(self.target + self.features).tolist()
 
         self.TO_SCALE = False
 
@@ -30,6 +38,7 @@ class class_xyv_none():
             self.indice = range(0,len(tmp))
         self.coordinates = coordinates
         self.df_coordinates = tmp.loc[:, self.coordinates]
+
         self.values = values
         self.df_values = tmp.loc[:, self.values]
 
@@ -50,11 +59,17 @@ class class_xyv_none():
         # target:
 
         ## indice of the target:
-        if ((self.history_length == 0) and (self.gap_length == 0) and (self.horizon_length == 0)):
-            indice_target = id_
-        else:
-            range_min = id_ + self.nb_location * (self.history_length + self.gap_length)
-            range_max = id_ + self.nb_location * (self.history_length + self.gap_length + self.horizon_length) #+1)
+        if (self.multi_loc == False):
+            if ((self.history_length == 0) and (self.gap_length == 0) and (self.horizon_length == 0)):
+                indice_target = id_
+            else:
+                range_min = id_ + self.nb_location * (self.history_length + self.gap_length)
+                range_max = id_ + self.nb_location * (self.history_length + self.gap_length + self.horizon_length)
+                range_max = min(range_max,self.len_xyt)
+                indice_target = range(range_min,range_max,self.nb_location)
+        elif (self.multi_loc == True):
+            range_min = self.nb_location * (math.floor(id_/self.nb_location) + self.history_length + self.gap_length)
+            range_max = self.nb_location * (math.floor(id_/self.nb_location) +1 + self.history_length + self.gap_length + self.horizon_length) #+1)
             range_max = min(range_max,self.len_xyt)
             indice_target = range(range_min,range_max,self.nb_location)
 
@@ -69,7 +84,7 @@ class class_xyv_none():
         del(tmp)
 
         ## values
-        tmp = self.df_values.iloc[indice_target]
+        tmp = self.df_values.loc[indice_target,self.target]
         if self.TO_SCALE == True:
             scaler = scaling_dict['StandardScaler']
             tmp = scaler(tmp, self.scale_param_values, True)
@@ -83,11 +98,14 @@ class class_xyv_none():
         range_min = self.nb_location * math.floor(id_/self.nb_location)
         range_max = self.nb_location * (math.floor(id_/self.nb_location) +1 + self.history_length )
         range_max = min(range_max,self.len_xyt)
-
         range_ = range(range_min,range_max)
-        if ((self.history_length == 0) and (self.gap_length == 0) and (self.horizon_length == 0)):
-            indice_features = random.sample([x for x in range_ if x != id_], min(len(range_),(self.nb_location-1)))
-        else:
+
+        if (self.multi_loc == False):
+            if ((self.history_length == 0) and (self.gap_length == 0) and (self.horizon_length == 0)):
+                indice_features = random.sample([x for x in range_ if x != id_], min(len(range_),(self.nb_location-1)))
+            else:
+                indice_features = range(range_min,range_max)
+        elif (self.multi_loc == True):
             indice_features = range(range_min,range_max)
 
         ## coordinates (x,y,...)
@@ -100,15 +118,72 @@ class class_xyv_none():
         del(tmp)
 
         ## values
-        tmp = self.df_values.iloc[indice_features]
+        tmp = self.df_values.loc[indice_features,self.features]
         if self.TO_SCALE == True:
             scaler = scaling_dict['StandardScaler']
             tmp = scaler(tmp, self.scale_param_values, True)
         feat_values_data = torch.from_numpy(tmp.to_numpy()).float()
         del(tmp)
 
-
         return feat_coordinates_data, feat_values_data, targ_coordinates_data, targ_values_data
+
+    def get_rand_input(self):
+        id = 1
+        # target:
+
+        ## indice of the target:
+        if (self.multi_loc == False):
+            if ((self.history_length == 0) and (self.gap_length == 0) and (self.horizon_length == 0)):
+                indice_target = id_
+            else:
+                range_min = id_ + self.nb_location * (self.history_length + self.gap_length)
+                range_max = id_ + self.nb_location * (self.history_length + self.gap_length + self.horizon_length)
+                range_max = min(range_max,self.len_xyt)
+                indice_target = range(range_min,range_max,self.nb_location)
+        elif (self.multi_loc == True):
+            range_min = self.nb_location * (math.floor(id_/self.nb_location) + self.history_length + self.gap_length)
+            range_max = self.nb_location * (math.floor(id_/self.nb_location) +1 + self.history_length + self.gap_length + self.horizon_length) #+1)
+            range_max = min(range_max,self.len_xyt)
+            indice_target = range(range_min,range_max,self.nb_location)
+
+        ## coordinates (x,y,...)
+        tmp = self.df_coordinates.iloc[indice_target]
+        targ_coordinates_data = torch.from_numpy(tmp.to_numpy()).float()
+        #targ_coordinates_data = torch.reshape(targ_coordinates_data, (1,3)).float()
+        del(tmp)
+
+        ## values
+        tmp = self.df_values.loc[indice_target,self.target]
+        targ_values_data = torch.from_numpy(tmp.to_numpy()).float()
+        #targ_values_data = torch.reshape(targ_values_data, (1,1)).float()
+        del(tmp)
+
+
+        # features
+        range_min = self.nb_location * math.floor(id_/self.nb_location)
+        range_max = self.nb_location * (math.floor(id_/self.nb_location) +1 + self.history_length )
+        range_max = min(range_max,self.len_xyt)
+        range_ = range(range_min,range_max)
+
+        if (self.multi_loc == False):
+            if ((self.history_length == 0) and (self.gap_length == 0) and (self.horizon_length == 0)):
+                indice_features = random.sample([x for x in range_ if x != id_], min(len(range_),(self.nb_location-1)))
+            else:
+                indice_features = range(range_min,range_max)
+        elif (self.multi_loc == True):
+            indice_features = range(range_min,range_max)
+
+        ## coordinates (x,y,...)
+        tmp = self.df_coordinates.iloc[indice_features]
+        feat_coordinates_data = torch.from_numpy(tmp.to_numpy()).float()
+        del(tmp)
+
+        ## values
+        tmp = self.df_values.loc[indice_features,self.features]
+        feat_values_data = torch.from_numpy(tmp.to_numpy()).float()
+        del(tmp)
+
+        return f(eat_coordinates_data, feat_values_data, targ_coordinates_data, targ_values_data)
 
     def get_scale_param_target(self):
         return self.scale_param_coordinates, self.scale_param_values
