@@ -32,10 +32,14 @@ def minmax_scaler(data, param, Scale):
 def standard_scaler_pd(data, mean_data, std_data, Scale):
     if Scale is True:
         for i in data:
-            data[i] = data[i].apply(lambda x: (x - mean_data[i])/ std_data[i])
+            #tmp = data.apply(lambda x: (x - mean_data[i])/ std_data[i])
+            #data = tmp
+            data[i] = (data[i]-mean_data[i][0])/ std_data[i][0]
     if Scale is False:
         for i in data:
-            data[i] = data[i].apply(lambda x: (x *std_data[i] + mean_data[i]))
+            #tmp = data.apply(lambda x: (x *std_data[i] + mean_data[i]))
+            #data = tmp
+            data[i] = data[i]*std_data[i][0] + mean_data[i][0]
     return data
 
 def standard_scaler_ndarray(data, mean_data, std_data, Scale):
@@ -58,10 +62,14 @@ def standard_scaler_ndarray(data, mean_data, std_data, Scale):
 def minmax_scaler_pd(data, min_data, max_data, Scale):
     if Scale is True:
         for i in data:
-            data[i] = data[i].apply(lambda x: (x - min_data[i])/ (max_data[i] - min_data[i]))
+            #tmp = data.apply(lambda x: (x - min_data[i])/ (max_data[i] - min_data[i]))
+            #data = tmp
+            data[i] = (data[i]-min_data[i][0]) / (max_data[i][0] - min_data[i][0])
     if Scale is False:
         for i in data:
-            data[i] = data[i].apply(lambda x: (x *(max_data[i] - min_data[i]) + min_data[i]))
+            #tmp =data.apply(lambda x: (x *(max_data[i] - min_data[i]) + min_data[i]))
+            #data = tmp
+            data[i] = data[i] * (max_data[i][0] - min_data[i][0]) + min_data[i][0]
     return data
 
 def minmax_scaler_ndarray(data, min_data, max_data, Scale):

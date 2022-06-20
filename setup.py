@@ -16,13 +16,13 @@ dev_requirements = []
 
 setup(
     name='steams',
-    version='0.02dev',
+    version='0.04dev',
     author="Jean-Marie Lepioufle",
     author_email="jml@nilu.no",
     packages=[
         'steams',
-        'steams.classes',
-        "steams.dictionnary",
+        'steams.data',
+        "steams.dict",
         "steams.krig",
         "steams.models",
         "steams.train_eval_pred",

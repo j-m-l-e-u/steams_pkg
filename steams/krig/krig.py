@@ -1,7 +1,7 @@
 import torch
 
 class class_krig():
-    def __init__(self, device ):
+    def __init__(self,device):
         self.device = device
 
     def get_dist_ij(self,feat_coord,Lx,Ly):
@@ -21,7 +21,7 @@ class class_krig():
 
         # scaled coordinates
         Lx_Ly = torch.cat((Lx,Ly),2)
-        coords_f_scaled = torch.div(feat_coord,  Lx_Ly[:,0:feat_coord.shape[1],:])
+        coords_f_scaled = torch.div(feat_coord[:,:,range(2)],  Lx_Ly[:,0:feat_coord.shape[1],:])
 
         # Euclidian scaled distance matrix between points [x,y]_i, i:1->n and points [x,y]_j, j:1->n
         dist = torch.cdist(coords_f_scaled,coords_f_scaled, p=2)
@@ -62,12 +62,12 @@ class class_krig():
         '''
         # scaled coordinates
         Lx_Ly = torch.cat((Lx,Ly),2)
-        coords_f_scaled = torch.div(feat_coord,  Lx_Ly[:,0:feat_coord.shape[1],:])
-        coords_t_scaled = torch.div(target_coord,  Lx_Ly[:,feat_coord.shape[1]:(feat_coord.shape[1]+target_coord.shape[1]),:])
+        coords_f_scaled = torch.div(feat_coord[:,:,range(2)],  Lx_Ly[:,0:feat_coord.shape[1],:])
+        coords_t_scaled = torch.div(target_coord[:,:,range(2)],  Lx_Ly[:,feat_coord.shape[1]:(feat_coord.shape[1]+target_coord.shape[1]),:])
 
         # Euclidian scaled distance matrix between points [x,y]_i, i:1->n and points [x,y]_star
         dist = torch.cdist(coords_f_scaled,coords_t_scaled, p=2)
-        dist = dist.to(self.device)
+        #dist = dist.to(self.device)
 
         # variance
         variance = torch.mul(sig[:,0:feat_coord.shape[1],:],torch.transpose(sig[:,feat_coord.shape[1]:(feat_coord.shape[1]+target_coord.shape[1]),:],1,2))
@@ -99,7 +99,7 @@ class class_krig():
         g_ij = self.gamma_ij(feat_coord,Lx,Ly,sig)
 
         g_jstar = self.gamma_jstar(feat_coord,target_coord,Lx,Ly,sig)
-    
+
         # https://pytorch.org/docs/stable/generated/torch.linalg.lstsq.html#torch.linalg.lstsq
         res = torch.linalg.lstsq(g_ij,g_jstar).solution.float()
 
@@ -110,4 +110,5 @@ class class_krig():
         k_w = self.k_weight(feat_coord,target_coord,Lx,Ly,sig)[:,range(feat_coord.shape[1])]
 
         res = torch.sum(torch.mul(k_w,feat_values),dim=(1),keepdim=True)
+        res = res.permute(0,2,1) 
         return(res)

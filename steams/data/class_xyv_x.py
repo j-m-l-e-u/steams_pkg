@@ -1,5 +1,5 @@
 from typing import Dict
-from steams.dictionnary.dictionnary_xyv import class_xyv_dict
+from steams.dict.int import class_xyv_dict
 
 def class_xyv_x(params: dict,subset_indice=None):
     class_x = class_xyv_dict[params['class']]
