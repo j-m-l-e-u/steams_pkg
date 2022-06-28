@@ -121,6 +121,89 @@ class attention_steams(class_steams):
             res = torch.cat(output, axis=0).to(self.device).detach()
         return res
 
+class transformer_ae_steams(class_steams):
+    def __init__(self,model,device):
+        super(transformer_steams, self).__init__(model,device)
+
+    def single_train(self, data_loader):
+        running_loss = 0.0
+        self.model.train()
+        for i, (features_coords,features_values,target_coords,target_values) in enumerate(data_loader):
+
+            features_coords = features_coords.to(self.device)
+            features_values = features_values.to(self.device)
+            target_coords = target_coords.to(self.device)
+            target_values = target_values.to(self.device)
+
+            self.optimizer.zero_grad()
+            output = self.model(features_coords.float(),features_values.float())
+
+            loss = self.criterion(target_values.float(),output)
+            loss.backward()
+            self.optimizer.step()
+            self.scheduler_lr.step()
+
+            if torch.isnan(loss) or loss == float('inf'):
+                raise("Error infinite or NaN loss detected")
+            running_loss += loss.item()
+        avg_loss = running_loss / float(i)
+        return avg_loss
+
+    def loss(self,data_loader):
+        self.model.eval()
+        with torch.no_grad():
+            running_loss = 0.0
+            for i, (features_coords,features_values,target_coords,target_values) in enumerate(data_loader):
+
+                features_coords = features_coords.to(self.device)
+                features_values = features_values.to(self.device)
+                target_coords = target_coords.to(self.device)
+                target_values = target_values.to(self.device)
+
+                output = self.model(features_coords.float(),features_values.float())
+                loss = self.criterion( target_values.float(),output)
+                running_loss += loss.item()
+            avg_loss = running_loss / float(i)
+        return avg_loss
+
+    def evaluation_bytarget(self, data_loader, class_xyv_):
+        self.model.eval()
+        with torch.no_grad():
+            tmp = pd.DataFrame()
+            running_loss = np.zeros(2, dtype = int)
+            for i, (features_coords,features_values,target_coords,target_values) in enumerate(data_loader):
+                features_coords = features_coords.to(self.device)
+                features_values = features_values.to(self.device)
+                target_coords = target_coords.to(self.device)
+                target_values = target_values.to(self.device)
+
+                output = self.model(features_coords.float(),features_values.float())
+
+                ##unscale
+                #output_unscale = class_xyv_.unscale(output,"values")
+                #target_unscale = class_xyv_.unscale(target_values,"values")
+
+                for k in range(output.shape[1]):
+                    #loss = self.criterion(output_unscale[:,k], target_unscale[:,k])
+                    loss = self.criterion(output[:,k], target_values[:,k])
+                    tmp.loc[i,k] = loss.item()
+            avg_loss = pd.DataFrame({'crit':tmp.apply(lambda x: np.mean(x))})
+        return avg_loss
+
+    def predict(self, class_xyv_):
+        self.model.eval()
+        with torch.no_grad():
+            output=[]
+            for i, (features_coords,features_values,target_coords, _ ) in enumerate(class_xyv_):
+                features_coords = features_coords.to(self.device)
+                features_values = features_values.to(self.device)
+                target_coords = target_coords.to(self.device)
+
+                tmp = self.model(features_coords.float(),features_values.float())
+                output.append(tmp)
+            res = torch.cat(output, axis=0).to(self.device).detach()
+        return res
+
 class transformer_steams(class_steams):
     def __init__(self,model,device):
         super(transformer_steams, self).__init__(model,device)

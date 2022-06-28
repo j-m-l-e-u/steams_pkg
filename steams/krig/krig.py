@@ -25,7 +25,6 @@ class class_krig():
 
         # Euclidian scaled distance matrix between points [x,y]_i, i:1->n and points [x,y]_j, j:1->n
         dist = torch.cdist(coords_f_scaled,coords_f_scaled, p=2)
-        dist = dist.to(self.device)
 
         # variance
         variance = torch.mul(sig[:,0:feat_coord.shape[1],:],torch.transpose(sig[:,0:feat_coord.shape[1],:],1,2))
@@ -67,7 +66,6 @@ class class_krig():
 
         # Euclidian scaled distance matrix between points [x,y]_i, i:1->n and points [x,y]_star
         dist = torch.cdist(coords_f_scaled,coords_t_scaled, p=2)
-        #dist = dist.to(self.device)
 
         # variance
         variance = torch.mul(sig[:,0:feat_coord.shape[1],:],torch.transpose(sig[:,feat_coord.shape[1]:(feat_coord.shape[1]+target_coord.shape[1]),:],1,2))
@@ -91,7 +89,7 @@ class class_krig():
         '''
         feat_coord: coordinates (x,y) of dim (nbatch,nbpoints,2)
         target_coord: oordinates (x,y) of dim (nbatch,nbpoints,2)
-        L_L_sig: range matrix of size nbatch x nbPoint x 3 (Lx,Ly,sigma)
+        Lx,Ly,sig: range matrix of size nbatch x nbPoint x 1
         Solving this optimization problem g_ij^-1 . g_jstar (w/ Lagrange multipliers) results in the kriging system
         rem: torch.linalg.solve gives double
         '''
@@ -107,8 +105,7 @@ class class_krig():
 
     def krig_pred(self,feat_coord,feat_values,target_coord,Lx,Ly,sig):
 
-        k_w = self.k_weight(feat_coord,target_coord,Lx,Ly,sig)[:,range(feat_coord.shape[1])]
-
-        res = torch.sum(torch.mul(k_w,feat_values),dim=(1),keepdim=True)
-        res = res.permute(0,2,1) 
+        self.k_w = self.k_weight(feat_coord,target_coord,Lx,Ly,sig)[:,range(feat_coord.shape[1])]
+        res = torch.sum(torch.mul(self.k_w,feat_values),dim=(1),keepdim=True)
+        res = res.permute(0,2,1)
         return(res)
