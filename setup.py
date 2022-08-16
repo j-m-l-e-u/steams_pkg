@@ -16,7 +16,7 @@ dev_requirements = []
 
 setup(
     name='steams',
-    version='0.04dev',
+    version='0.05dev',
     author="Jean-Marie Lepioufle",
     author_email="jml@nilu.no",
     packages=[
@@ -28,7 +28,7 @@ setup(
         "steams.train_eval_pred",
         "steams.utils"],
     license='MIT + Copyright NILU',
-    description='A package for testing space-time prediction with multi-timeserie located at sparse locations.',
+    description='Space-time prediction with sparse and irregular space-time multi-timeserie.',
     long_description = long_description,
     url="https://git.nilu.no/aqdl/steams",
     python_requires='>=3.8',

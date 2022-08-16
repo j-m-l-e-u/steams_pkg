@@ -4,35 +4,30 @@ class class_krig():
     def __init__(self,device):
         self.device = device
 
-    def get_dist_ij(self,feat_coord,Lx,Ly):
-        # scaled coordinates
-        Lx_Ly = torch.cat((Lx,Ly),2)
-        coords_f_scaled = torch.div(feat_coord,  Lx_Ly[:,0:feat_coord.shape[1],:])
-        res = torch.cdist(coords_f_scaled,coords_f_scaled, p=2)
+    def get_dist_ij(self,KEY,Wk):
+        # scaling coordinates
+        KEY_scale = torch.einsum('bij,bij->bij',KEY , Wk)
+        # Euclidian scaled distance matrix between points [x,y]_i, i:1->n and points [x,y]_star
+        dist = torch.cdist(KEY_scale,KEY_scale, p=2)
         res = res.to(self.device)
         return(res)
 
-    def gamma_ij(self,feat_coord,Lx,Ly,sig):
+    def gamma_ij(self,KEY,Wk):
         '''
         gamma_ij
-        feat_coord: coordinates (x,y) of dim (nbatch,nbpoints,2)
-        Lx,Ly,sig: range matrix of size nbatch x nbPoint x 1
+        KEY: coordinates (x,y,...) of dim (nbatch,nbpoints,n coords)
+        Wk: range matrix of dim (nbatch,nbpoints,n coords)
         '''
 
-        # scaled coordinates
-        Lx_Ly = torch.cat((Lx,Ly),2)
-        coords_f_scaled = torch.div(feat_coord[:,:,range(2)],  Lx_Ly[:,0:feat_coord.shape[1],:])
+        # scaling coordinates
+        KEY_scale = torch.einsum('bij,bij->bij',KEY , Wk)
 
-        # Euclidian scaled distance matrix between points [x,y]_i, i:1->n and points [x,y]_j, j:1->n
-        dist = torch.cdist(coords_f_scaled,coords_f_scaled, p=2)
+        # Euclidian scaled distance matrix between points [x,y]_i, i:1->n and points [x,y]_star
+        dist = torch.cdist(KEY_scale,KEY_scale, p=2)
 
-        # variance
-        variance = torch.mul(sig[:,0:feat_coord.shape[1],:],torch.transpose(sig[:,0:feat_coord.shape[1],:],1,2))
-
-        # exponential variogram
+        # exponential variogram of variance equal to 1
         res = torch.tensor((), dtype=torch.float64).to(self.device)
         res = res.new_ones((dist.shape[0],dist.shape[1],dist.shape[2])) - torch.exp(-dist)
-        res = torch.mul(variance,res)
 
         # Lagrangian multiplier
         ## tensor [b,i,N]
@@ -52,28 +47,24 @@ class class_krig():
 
         return(res)
 
-    def gamma_jstar(self,feat_coord,target_coord,Lx,Ly,sig):
+    def gamma_jstar(self,KEY,QUERY,Wk,Wq):
         '''
         gamma_jstar
-        feat_coord: coordinates (x,y) of dim (nbatch,nbpoints,2)
-        target_coord: oordinates (x,y) of dim (nbatch,nbpoints,2)
-        Lx,Ly,sig: range matrix of size nbatch x nbPoint x 1
+        KEY: coordinates (x,y,...) of dim (nbatch,nbpoints,n coords)
+        QUERY: coordinates (x,y,...) of dim (nbatch,nbpoints,n coords)
+        Wk,Wq: range matrix of dim (nbatch,nbpoints,n coords)
         '''
-        # scaled coordinates
-        Lx_Ly = torch.cat((Lx,Ly),2)
-        coords_f_scaled = torch.div(feat_coord[:,:,range(2)],  Lx_Ly[:,0:feat_coord.shape[1],:])
-        coords_t_scaled = torch.div(target_coord[:,:,range(2)],  Lx_Ly[:,feat_coord.shape[1]:(feat_coord.shape[1]+target_coord.shape[1]),:])
+
+        # scaling coordinates
+        KEY_scale = torch.einsum('bij,bij->bij',KEY , Wk)
+        QUERY_scale = torch.einsum('bkj,bkj->bkj',QUERY , Wq)
 
         # Euclidian scaled distance matrix between points [x,y]_i, i:1->n and points [x,y]_star
-        dist = torch.cdist(coords_f_scaled,coords_t_scaled, p=2)
+        dist = torch.cdist(KEY_scale,QUERY_scale, p=2)
 
-        # variance
-        variance = torch.mul(sig[:,0:feat_coord.shape[1],:],torch.transpose(sig[:,feat_coord.shape[1]:(feat_coord.shape[1]+target_coord.shape[1]),:],1,2))
-
-        # exponential variogram
+        # exponential variogram of variance equal to 1
         res = torch.tensor((), dtype=torch.float64).to(self.device)
         res = res.new_ones((dist.shape[0],dist.shape[1],dist.shape[2])) - torch.exp(-dist)
-        res = torch.mul(variance,res)
 
         # Lagrangian multiplier
         ## tensor [b,1,N]
@@ -85,27 +76,25 @@ class class_krig():
 
         return(res)
 
-    def k_weight(self,feat_coord,target_coord,Lx,Ly,sig):
+    def k_weight(self,KEY,QUERY,Wk,Wq):
         '''
-        feat_coord: coordinates (x,y) of dim (nbatch,nbpoints,2)
-        target_coord: oordinates (x,y) of dim (nbatch,nbpoints,2)
-        Lx,Ly,sig: range matrix of size nbatch x nbPoint x 1
+        KEY: coordinates (x,y,...) of dim (nbatch,nbpoints,n coords)
+        QUERY: coordinates (x,y,...) of dim (nbatch,nbpoints,n coords)
+        Wk,Wq: range matrix of dim (nbatch,nbpoints,n coords)
         Solving this optimization problem g_ij^-1 . g_jstar (w/ Lagrange multipliers) results in the kriging system
-        rem: torch.linalg.solve gives double
         '''
 
-        g_ij = self.gamma_ij(feat_coord,Lx,Ly,sig)
+        g_ij = self.gamma_ij(KEY,Wk)
 
-        g_jstar = self.gamma_jstar(feat_coord,target_coord,Lx,Ly,sig)
+        g_jstar = self.gamma_jstar(KEY,QUERY,Wk,Wq)
 
         # https://pytorch.org/docs/stable/generated/torch.linalg.lstsq.html#torch.linalg.lstsq
+        #rem: torch.linalg.solve gives double
         res = torch.linalg.lstsq(g_ij,g_jstar).solution.float()
 
         return(res)
 
-    def krig_pred(self,feat_coord,feat_values,target_coord,Lx,Ly,sig):
-
-        self.k_w = self.k_weight(feat_coord,target_coord,Lx,Ly,sig)[:,range(feat_coord.shape[1])]
-        res = torch.sum(torch.mul(self.k_w,feat_values),dim=(1),keepdim=True)
-        res = res.permute(0,2,1)
+    def krig_pred(self,KEY,VALUE,QUERY,Wk,Wq):
+        self.k_w = self.k_weight(KEY,QUERY,Wk,Wq)[:,range(KEY.shape[1])]
+        res = torch.einsum('bij,bik->bjk',self.k_w,VALUE)
         return(res)

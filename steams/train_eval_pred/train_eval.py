@@ -3,12 +3,12 @@ import pandas as pd
 import numpy as np
 import os
 
-def train(obj,train_class_xyv_x,valid_class_xyv_x,niter,n_iter_stop,batch_size, shuffle=False,sampler=None,batch_sampler=None,num_workers=0,pin_memory=False,resdir=None):
+def train(obj,train_class_data,valid_class_data,niter,n_iter_stop,batch_size, shuffle=False,sampler=None,batch_sampler=None,num_workers=0,pin_memory=False,resdir=None):
     """
     Args:
         obj: steams object
-        train_class_xyv_x
-        valid_class_xyv_x
+        train_class_data
+        valid_class_data
         niter
         n_iter_stop
         batch_size=batch_size
@@ -20,8 +20,8 @@ def train(obj,train_class_xyv_x,valid_class_xyv_x,niter,n_iter_stop,batch_size, 
         resdir
     """
 
-    train_data_loader = DataLoader(train_class_xyv_x,batch_size=batch_size, shuffle=shuffle,sampler=sampler,batch_sampler=batch_sampler,num_workers=num_workers,pin_memory=pin_memory)
-    valid_data_loader = DataLoader(valid_class_xyv_x,batch_size=batch_size, shuffle=shuffle,sampler=sampler,batch_sampler=batch_sampler,num_workers=num_workers,pin_memory=pin_memory)
+    train_data_loader = DataLoader(train_class_data,batch_size=batch_size, shuffle=shuffle,sampler=sampler,batch_sampler=batch_sampler,num_workers=num_workers,pin_memory=pin_memory)
+    valid_data_loader = DataLoader(valid_class_data,batch_size=batch_size, shuffle=shuffle,sampler=sampler,batch_sampler=batch_sampler,num_workers=num_workers,pin_memory=pin_memory)
 
     min_val_loss = np.Inf
     n_epochs_stop = n_iter_stop
@@ -38,7 +38,7 @@ def train(obj,train_class_xyv_x,valid_class_xyv_x,niter,n_iter_stop,batch_size, 
         loss_res = pd.concat([loss_res,loss_tmp],axis=0)
 
         if (epoch % 5 == 0 and resdir is not None):
-            obj.saveCheckpoint(resdir,str(epoch),epoch,loss_res,train_class_xyv_x.indice)
+            obj.saveCheckpoint(resdir,str(epoch),epoch,loss_res,train_class_data.indice)
             loss_res.to_csv(os.path.join(resdir,str(epoch)+'_loss.csv'))
         elif (resdir is None):
             print(loss_tmp)
@@ -60,11 +60,11 @@ def train(obj,train_class_xyv_x,valid_class_xyv_x,niter,n_iter_stop,batch_size, 
     #model_.export_onnx(resdir,"fold_"+str(fold),train_fold,params_export_onnx)
 
 
-def eval(obj,valid_class_xyv_x,batch_size, shuffle=False,sampler=None,batch_sampler=None,num_workers=0,pin_memory=False,resdir=None):
+def eval(obj,valid_class_data,batch_size, shuffle=False,sampler=None,batch_sampler=None,num_workers=0,pin_memory=False,resdir=None):
     """
     Args:
-        obj
-        valid_class_xyv_x
+        obj: steams object
+        valid_class_data
         batch_size
         shuffle=False
         sampler=None
@@ -74,9 +74,9 @@ def eval(obj,valid_class_xyv_x,batch_size, shuffle=False,sampler=None,batch_samp
         resdir
     """
 
-    valid_data_loader = DataLoader(valid_class_xyv_x,batch_size=batch_size, shuffle=shuffle,sampler=sampler,batch_sampler=batch_sampler,num_workers=num_workers,pin_memory=pin_memory)
+    valid_data_loader = DataLoader(valid_class_data,batch_size=batch_size, shuffle=shuffle,sampler=sampler,batch_sampler=batch_sampler,num_workers=num_workers,pin_memory=pin_memory)
 
-    eval_tmp= obj.evaluation_bytarget(valid_data_loader,valid_class_xyv_x)['crit']
+    eval_tmp= obj.evaluation_bytarget(valid_data_loader,valid_class_data)
     if (resdir  is not None):
         eval_tmp.to_csv(os.path.join(resdir,'eval.csv'))
     else:

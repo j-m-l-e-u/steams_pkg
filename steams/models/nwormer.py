@@ -1,14 +1,14 @@
 import torch
 from torch import nn
-from steams.models.attention import mha1
+from steams.models.attention import NW2
 
 ###
 ### Transformer Encoder
 ###
-class TransformerEncoder(nn.Module):
+class NwormerEncoder(nn.Module):
     def __init__(self, num_layers, **block_args):
         super().__init__()
-        self.layers = nn.ModuleList([EncoderBlock(**block_args) for _ in range(num_layers)])
+        self.layers = nn.ModuleList([NWEncoderBlock(**block_args) for _ in range(num_layers)])
 
     def forward(self, X):
         self.attention_maps = []
@@ -21,7 +21,7 @@ class TransformerEncoder(nn.Module):
     def get_attention_maps(self):
         return self.attention_maps
 
-class EncoderBlock(nn.Module):
+class NWEncoderBlock(nn.Module):
     def __init__(self, input_x, hidden_size, num_heads, dim_feedforward, dropout=0.1):
         super().__init__()
         self.input_k = input_x
@@ -64,12 +64,12 @@ class EncoderBlock(nn.Module):
         return res
 
 ###
-### Transformer Decoder
+### Nwormer Decoder
 ###
-class TransformerDecoder(nn.Module):
+class NwormerDecoder(nn.Module):
     def __init__(self, num_layers, **block_args):
         super().__init__()
-        self.layers = nn.ModuleList([DecoderBlock(**block_args) for _ in range(num_layers)])
+        self.layers = nn.ModuleList([NWDecoderBlock(**block_args) for _ in range(num_layers)])
 
     def forward(self, Y,X_enc):
         self.attention_maps = [[] * len(self.layers) for _ in range (2)]
@@ -85,7 +85,7 @@ class TransformerDecoder(nn.Module):
     def get_attention_maps(self):
         return self.attention_maps
 
-class DecoderBlock(nn.Module):
+class NWDecoderBlock(nn.Module):
     def __init__(self, input_y, hidden_size, num_heads, dim_feedforward, dropout=0.1):
         super().__init__()
         self.input_k = input_y
@@ -140,42 +140,11 @@ class DecoderBlock(nn.Module):
         return y3, X_enc
 
 ###
-### Transformer AE
-###
-class Transformer_ae(nn.Module):
-    """
-    Transformer Auto-encoder
-    Args:
-        num_layers: nb of enc layers
-        input_coords: Input size of the coordinates
-        num_heads: Number of heads to use in the attention block
-        dim_feedforward: Dimensionality of the hidden layer in the MLP
-        dropout: Dropout probability to use in the dropout layers
-        linear_hidden_size:  Dimensionnality of the final linear fc
-        output_size: Dimensionanlity of the output
-    """
-    def __init__(self, num_layers=1, input_coords=3, hidden_size=20, num_heads=4, dim_feedforward=20, dropout=0.1, linear_hidden_size=7, output_size=1):
-        super().__init__()
-
-        self.encoder = TransformerEncoder(num_layers=num_layers,input_x = input_coords, hidden_size=hidden_size, num_heads=num_heads, dim_feedforward=dim_feedforward, dropout=dropout)
-        self.fc = nn.Linear(input_coords, output_size)
-
-    def positioning(self,X,coords):
-        X = torch.repeat_interleave(X, coords.size(-1), dim=-1)
-        X = X + coords
-        return X
-
-    def forward(self, coords,values):
-        X = self.positioning(values,coords)
-        X_enc = self.encoder(X)
-        return self.fc(X_enc)
-
-###
 ### Transformer
 ###
-class Transformer(nn.Module):
+class Nwormer(nn.Module):
     """
-    Transformer
+    Nwormer
     Parameters of the encoder and decoder are identical.
     Args:
         num_layers: nb of enc/dec layers

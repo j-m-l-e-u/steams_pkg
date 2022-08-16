@@ -45,17 +45,17 @@ class attention_steams(class_steams):
     def single_train(self,data_loader):
         running_loss = 0.0
         self.model.train()
-        for i, (features_coords,features_values,target_coords,target_values) in enumerate(data_loader):
+        for i, (KEY_Y,VALUE_Y,QUERY_X,VALUE_X) in enumerate(data_loader):
 
-            features_coords = features_coords.to(self.device)
-            features_values = features_values.to(self.device)
-            target_coords = target_coords.to(self.device)
-            target_values = target_values.to(self.device)
+            KEY_Y = KEY_Y.to(self.device)
+            VALUE_Y = VALUE_Y.to(self.device)
+            QUERY_X = QUERY_X.to(self.device)
+            VALUE_X = VALUE_X.to(self.device)
 
             self.optimizer.zero_grad()
-            output = self.model(features_coords.float() ,features_values.float() ,target_coords.float() )
+            output = self.model(KEY_Y.float() ,VALUE_Y.float() ,QUERY_X.float() )
 
-            loss = self.criterion(target_values.float(),output)
+            loss = self.criterion(VALUE_X.float(),output)
             loss.backward()
             self.optimizer.step()
             #self.scheduler_lr.step()
@@ -63,82 +63,80 @@ class attention_steams(class_steams):
             if torch.isnan(loss) or loss == float('inf'):
                 raise("Error infinite or NaN loss detected")
             running_loss += loss.item()
-        avg_loss = running_loss / float(i)
+        avg_loss = running_loss / (float(i)+1.)
         return avg_loss
 
     def loss(self,data_loader):
         self.model.eval()
         with torch.no_grad():
             running_loss = 0.0
-            for i, (features_coords,features_values,target_coords,target_values) in enumerate(data_loader):
+            for i, (KEY_Y,VALUE_Y,QUERY_X,VALUE_X) in enumerate(data_loader):
 
-                features_coords = features_coords.to(self.device)
-                features_values = features_values.to(self.device)
-                target_coords = target_coords.to(self.device)
-                target_values = target_values.to(self.device)
+                KEY_Y = KEY_Y.to(self.device)
+                VALUE_Y = VALUE_Y.to(self.device)
+                QUERY_X = QUERY_X.to(self.device)
+                VALUE_X = VALUE_X.to(self.device)
 
-                output = self.model(features_coords.float(),features_values.float(), target_coords.float())
-                loss = self.criterion( target_values.float(),output)
+                output = self.model(KEY_Y.float(),VALUE_Y.float(), QUERY_X.float())
+                loss = self.criterion( VALUE_X.float(),output)
                 running_loss += loss.item()
-            avg_loss = running_loss / float(i)
+            avg_loss = running_loss / (float(i)+1.)
         return avg_loss
 
     def evaluation_bytarget(self, data_loader, class_xyv_):
         self.model.eval()
         with torch.no_grad():
-            tmp = pd.DataFrame()
-            running_loss = np.zeros(2, dtype = int)
-            for i, (features_coords,features_values,target_coords,target_values) in enumerate(data_loader):
-                features_coords = features_coords.to(self.device)
-                features_values = features_values.to(self.device)
-                target_coords = target_coords.to(self.device)
-                target_values = target_values.to(self.device)
+            running_loss = 0.0
+            for i, (KEY_Y,VALUE_Y,QUERY_X,VALUE_X) in enumerate(data_loader):
+                KEY_Y = KEY_Y.to(self.device)
+                VALUE_Y = VALUE_Y.to(self.device)
+                QUERY_X = QUERY_X.to(self.device)
+                VALUE_X = VALUE_X.to(self.device)
 
-                output = self.model(features_coords.float(),features_values.float(), target_coords.float())
+                output = self.model(KEY_Y.float(),VALUE_Y.float(), QUERY_X.float())
 
                 ##unscale
                 #output_unscale = class_xyv_.unscale(output,"values")
-                #target_unscale = class_xyv_.unscale(target_values,"values")
+                #target_unscale = class_xyv_.unscale(VALUE_X,"values")
 
-                for k in range(output.shape[1]):
-                    #loss = self.criterion(output_unscale[:,k], target_unscale[:,k])
-                    loss = self.criterion(output[:,k], target_values[:,k])
-                    tmp.loc[i,k] = loss.item()
-            avg_loss = pd.DataFrame({'crit':tmp.apply(lambda x: np.mean(x))})
+                loss = self.criterion( VALUE_X.float(),output)
+                running_loss += loss.item()
+
+            avg_loss = running_loss / (float(i)+1.)
         return avg_loss
 
     def predict(self, class_xyv_):
         self.model.eval()
         with torch.no_grad():
             output=[]
-            for i, (features_coords,features_values,target_coords, _ ) in enumerate(class_xyv_):
-                features_coords = features_coords.to(self.device)
-                features_values = features_values.to(self.device)
-                target_coords = target_coords.to(self.device)
+            for i, (KEY_Y,VALUE_Y,QUERY_X, _ ) in enumerate(class_xyv_):
+                KEY_Y = KEY_Y.to(self.device)
+                VALUE_Y = VALUE_Y.to(self.device)
+                QUERY_X = QUERY_X.to(self.device)
 
-                tmp = self.model(features_coords.float() ,features_values.float() ,target_coords.float() )
+                tmp = self.model(KEY_Y.float() ,VALUE_Y.float() ,QUERY_X.float() )
                 output.append(tmp)
             res = torch.cat(output, axis=0).to(self.device).detach()
         return res
 
 class transformer_ae_steams(class_steams):
     def __init__(self,model,device):
-        super(transformer_steams, self).__init__(model,device)
+        super(transformer_ae_steams, self).__init__(model,device)
 
     def single_train(self, data_loader):
         running_loss = 0.0
         self.model.train()
-        for i, (features_coords,features_values,target_coords,target_values) in enumerate(data_loader):
+        for i, (KEY_Y,VALUE_Y,QUERY_X,VALUE_X) in enumerate(data_loader):
 
-            features_coords = features_coords.to(self.device)
-            features_values = features_values.to(self.device)
-            target_coords = target_coords.to(self.device)
-            target_values = target_values.to(self.device)
+            KEY_Y = KEY_Y.to(self.device)
+            VALUE_Y = VALUE_Y.to(self.device)
+            QUERY_X = QUERY_X.to(self.device)
+            VALUE_X = VALUE_X.to(self.device)
 
             self.optimizer.zero_grad()
-            output = self.model(features_coords.float(),features_values.float())
+            output = self.model(KEY_Y.float(),VALUE_Y.float())
 
-            loss = self.criterion(target_values.float(),output)
+            loss = self.criterion(VALUE_X.float(),output)
             loss.backward()
             self.optimizer.step()
             self.scheduler_lr.step()
@@ -153,15 +151,15 @@ class transformer_ae_steams(class_steams):
         self.model.eval()
         with torch.no_grad():
             running_loss = 0.0
-            for i, (features_coords,features_values,target_coords,target_values) in enumerate(data_loader):
+            for i, (KEY_Y,VALUE_Y,QUERY_X,VALUE_X) in enumerate(data_loader):
 
-                features_coords = features_coords.to(self.device)
-                features_values = features_values.to(self.device)
-                target_coords = target_coords.to(self.device)
-                target_values = target_values.to(self.device)
+                KEY_Y = KEY_Y.to(self.device)
+                VALUE_Y = VALUE_Y.to(self.device)
+                QUERY_X = QUERY_X.to(self.device)
+                VALUE_X = VALUE_X.to(self.device)
 
-                output = self.model(features_coords.float(),features_values.float())
-                loss = self.criterion( target_values.float(),output)
+                output = self.model(KEY_Y.float(),VALUE_Y.float())
+                loss = self.criterion( VALUE_X.float(),output)
                 running_loss += loss.item()
             avg_loss = running_loss / float(i)
         return avg_loss
@@ -171,21 +169,21 @@ class transformer_ae_steams(class_steams):
         with torch.no_grad():
             tmp = pd.DataFrame()
             running_loss = np.zeros(2, dtype = int)
-            for i, (features_coords,features_values,target_coords,target_values) in enumerate(data_loader):
-                features_coords = features_coords.to(self.device)
-                features_values = features_values.to(self.device)
-                target_coords = target_coords.to(self.device)
-                target_values = target_values.to(self.device)
+            for i, (KEY_Y,VALUE_Y,QUERY_X,VALUE_X) in enumerate(data_loader):
+                KEY_Y = KEY_Y.to(self.device)
+                VALUE_Y = VALUE_Y.to(self.device)
+                QUERY_X = QUERY_X.to(self.device)
+                VALUE_X = VALUE_X.to(self.device)
 
-                output = self.model(features_coords.float(),features_values.float())
+                output = self.model(KEY_Y.float(),VALUE_Y.float())
 
                 ##unscale
                 #output_unscale = class_xyv_.unscale(output,"values")
-                #target_unscale = class_xyv_.unscale(target_values,"values")
+                #target_unscale = class_xyv_.unscale(VALUE_X,"values")
 
                 for k in range(output.shape[1]):
                     #loss = self.criterion(output_unscale[:,k], target_unscale[:,k])
-                    loss = self.criterion(output[:,k], target_values[:,k])
+                    loss = self.criterion(output[:,k], VALUE_X[:,k])
                     tmp.loc[i,k] = loss.item()
             avg_loss = pd.DataFrame({'crit':tmp.apply(lambda x: np.mean(x))})
         return avg_loss
@@ -194,12 +192,12 @@ class transformer_ae_steams(class_steams):
         self.model.eval()
         with torch.no_grad():
             output=[]
-            for i, (features_coords,features_values,target_coords, _ ) in enumerate(class_xyv_):
-                features_coords = features_coords.to(self.device)
-                features_values = features_values.to(self.device)
-                target_coords = target_coords.to(self.device)
+            for i, (KEY_Y,VALUE_Y,QUERY_X, _ ) in enumerate(class_xyv_):
+                KEY_Y = KEY_Y.to(self.device)
+                VALUE_Y = VALUE_Y.to(self.device)
+                QUERY_X = QUERY_X.to(self.device)
 
-                tmp = self.model(features_coords.float(),features_values.float())
+                tmp = self.model(KEY_Y.float(),VALUE_Y.float())
                 output.append(tmp)
             res = torch.cat(output, axis=0).to(self.device).detach()
         return res
@@ -211,17 +209,17 @@ class transformer_steams(class_steams):
     def single_train(self, data_loader):
         running_loss = 0.0
         self.model.train()
-        for i, (features_coords,features_values,target_coords,target_values) in enumerate(data_loader):
+        for i, (KEY_Y,VALUE_Y,QUERY_X,VALUE_X) in enumerate(data_loader):
 
-            features_coords = features_coords.to(self.device)
-            features_values = features_values.to(self.device)
-            target_coords = target_coords.to(self.device)
-            target_values = target_values.to(self.device)
+            QUERY_X = QUERY_X.to(self.device) # X
+            VALUE_X = VALUE_X.to(self.device) # coords X
+            KEY_Y = KEY_Y.to(self.device) # Y
+            VALUE_Y = VALUE_Y.to(self.device) # coords Y
+
 
             self.optimizer.zero_grad()
-            output = self.model(features_coords.float(),features_values.float(), target_coords.float(),features_coords.float(),target_values.float(), target_coords.float())
-
-            loss = self.criterion(target_values.float(),output)
+            output = self.model(QUERY_X.float(),VALUE_X.float(), KEY_Y.float(),VALUE_Y.float())[0]
+            loss = self.criterion(VALUE_X.float(),output)
             loss.backward()
             self.optimizer.step()
             self.scheduler_lr.step()
@@ -236,15 +234,15 @@ class transformer_steams(class_steams):
         self.model.eval()
         with torch.no_grad():
             running_loss = 0.0
-            for i, (features_coords,features_values,target_coords,target_values) in enumerate(data_loader):
+            for i, (KEY_Y,VALUE_Y,QUERY_X,VALUE_X) in enumerate(data_loader):
 
-                features_coords = features_coords.to(self.device)
-                features_values = features_values.to(self.device)
-                target_coords = target_coords.to(self.device)
-                target_values = target_values.to(self.device)
+                KEY_Y = KEY_Y.to(self.device)
+                VALUE_Y = VALUE_Y.to(self.device)
+                QUERY_X = QUERY_X.to(self.device)
+                VALUE_X = VALUE_X.to(self.device)
 
-                output = self.model(features_coords.float(),features_values.float(), target_coords.float(),features_coords.float(),target_values.float(), target_coords.float())
-                loss = self.criterion( target_values.float(),output)
+                output = self.model(QUERY_X.float(),VALUE_X.float(), KEY_Y.float(),VALUE_Y.float())[0]
+                loss = self.criterion( VALUE_X.float(),output)
                 running_loss += loss.item()
             avg_loss = running_loss / float(i)
         return avg_loss
@@ -254,21 +252,21 @@ class transformer_steams(class_steams):
         with torch.no_grad():
             tmp = pd.DataFrame()
             running_loss = np.zeros(2, dtype = int)
-            for i, (features_coords,features_values,target_coords,target_values) in enumerate(data_loader):
-                features_coords = features_coords.to(self.device)
-                features_values = features_values.to(self.device)
-                target_coords = target_coords.to(self.device)
-                target_values = target_values.to(self.device)
+            for i, (KEY_Y,VALUE_Y,QUERY_X,VALUE_X) in enumerate(data_loader):
+                KEY_Y = KEY_Y.to(self.device)
+                VALUE_Y = VALUE_Y.to(self.device)
+                QUERY_X = QUERY_X.to(self.device)
+                VALUE_X = VALUE_X.to(self.device)
 
-                output = self.model(features_coords.float(),features_values.float(), target_coords.float(),features_coords.float(),target_values.float(), target_coords.float())
+                output = self.model(QUERY_X.float(),VALUE_X.float(), KEY_Y.float(),VALUE_Y.float())[0]
 
                 ##unscale
                 #output_unscale = class_xyv_.unscale(output,"values")
-                #target_unscale = class_xyv_.unscale(target_values,"values")
+                #target_unscale = class_xyv_.unscale(VALUE_X,"values")
 
                 for k in range(output.shape[1]):
                     #loss = self.criterion(output_unscale[:,k], target_unscale[:,k])
-                    loss = self.criterion(output[:,k], target_values[:,k])
+                    loss = self.criterion(output[:,k], VALUE_X[:,k])
                     tmp.loc[i,k] = loss.item()
             avg_loss = pd.DataFrame({'crit':tmp.apply(lambda x: np.mean(x))})
         return avg_loss
@@ -277,12 +275,95 @@ class transformer_steams(class_steams):
         self.model.eval()
         with torch.no_grad():
             output=[]
-            for i, (features_coords,features_values,target_coords, _ ) in enumerate(class_xyv_):
-                features_coords = features_coords.to(self.device)
-                features_values = features_values.to(self.device)
-                target_coords = target_coords.to(self.device)
+            for i, (KEY_Y,VALUE_Y,QUERY_X, _ ) in enumerate(class_xyv_):
+                KEY_Y = KEY_Y.to(self.device)
+                VALUE_Y = VALUE_Y.to(self.device)
+                QUERY_X = QUERY_X.to(self.device)
 
-                tmp = self.model(features_coords.float(),features_values.float(), target_coords.float(),features_coords.float(),target_values.float(), target_coords.float())
+                tmp = self.model(QUERY_X.float(),VALUE_X.float(), KEY_Y.float(),VALUE_Y.float())[0]
+                output.append(tmp)
+            res = torch.cat(output, axis=0).to(self.device).detach()
+        return res
+
+
+class transformer_coords_steams(class_steams):
+    def __init__(self,model,device):
+        super(transformer_coords_steams, self).__init__(model,device)
+
+    def single_train(self, data_loader):
+        running_loss = 0.0
+        self.model.train()
+        for i, (KEY_Y,VALUE_Y,QUERY_X,VALUE_X) in enumerate(data_loader):
+
+            KEY_Y = KEY_Y.to(self.device)
+            VALUE_Y = VALUE_Y.to(self.device)
+            QUERY_X = QUERY_X.to(self.device)
+            VALUE_X = VALUE_X.to(self.device)
+
+            self.optimizer.zero_grad()
+            output = self.model(QUERY_X.float(),KEY_Y.float(),VALUE_Y.float())
+            loss = self.criterion(VALUE_X.float(),output[0])
+            loss.backward()
+            self.optimizer.step()
+            self.scheduler_lr.step()
+
+            if torch.isnan(loss) or loss == float('inf'):
+                raise("Error infinite or NaN loss detected")
+            running_loss += loss.item()
+        avg_loss = running_loss / float(i)
+        return avg_loss
+
+    def loss(self,data_loader):
+        self.model.eval()
+        with torch.no_grad():
+            running_loss = 0.0
+            for i, (KEY_Y,VALUE_Y,QUERY_X,VALUE_X) in enumerate(data_loader):
+
+                KEY_Y = KEY_Y.to(self.device)
+                VALUE_Y = VALUE_Y.to(self.device)
+                QUERY_X = QUERY_X.to(self.device)
+                VALUE_X = VALUE_X.to(self.device)
+
+                output = self.model(QUERY_X.float(),KEY_Y.float(),VALUE_Y.float())[0]
+                loss = self.criterion( VALUE_X.float(),output)
+                running_loss += loss.item()
+            avg_loss = running_loss / float(i)
+        return avg_loss
+
+    def evaluation_bytarget(self, data_loader, class_xyv_):
+        self.model.eval()
+        with torch.no_grad():
+            tmp = pd.DataFrame()
+            running_loss = np.zeros(2, dtype = int)
+            for i, (KEY_Y,VALUE_Y,QUERY_X,VALUE_X) in enumerate(data_loader):
+                KEY_Y = KEY_Y.to(self.device)
+                VALUE_Y = VALUE_Y.to(self.device)
+                QUERY_X = QUERY_X.to(self.device)
+                VALUE_X = VALUE_X.to(self.device)
+
+                output = self.model(QUERY_X.float(),KEY_Y.float(),VALUE_Y.float())[0]
+
+                ##unscale
+                #output_unscale = class_xyv_.unscale(output,"values")
+                #target_unscale = class_xyv_.unscale(VALUE_X,"values")
+
+                for k in range(output.shape[1]):
+                    #loss = self.criterion(output_unscale[:,k], target_unscale[:,k])
+                    loss = self.criterion(output[:,k], VALUE_X[:,k])
+                    tmp.loc[i,k] = loss.item()
+            avg_loss = pd.DataFrame({'crit':tmp.apply(lambda x: np.mean(x))})
+        return avg_loss
+
+    def predict(self, class_xyv_):
+        self.model.eval()
+        with torch.no_grad():
+            output=[]
+            for i, (KEY_Y,VALUE_Y,QUERY_X, _ ) in enumerate(class_xyv_):
+                KEY_Y = KEY_Y.to(self.device)
+                VALUE_Y = VALUE_Y.to(self.device)
+                QUERY_X = QUERY_X.to(self.device)
+
+                tmp = self.model(QUERY_X.float(),KEY_Y.float(),VALUE_Y.float())[0]
                 output.append(tmp)
             res = torch.cat(output, axis=0).to(self.device).detach()
         return res
