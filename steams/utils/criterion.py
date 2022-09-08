@@ -23,7 +23,15 @@ class bias(torch.nn.Module):
         bias = torch.mean(y_pred-target)
         return bias
 
-# got from https://pytorch-widedeep.readthedocs.io/en/latest/_modules/pytorch_widedeep/metrics.html#R2Score
+class variance(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+    def forward(self, target: torch.Tensor, y_pred: torch.Tensor):
+        bias = torch.mean(y_pred-target)
+        res = torch.mean(torch.abs(y_pred - bias))**2
+        return res
+
+# adapted from https://pytorch-widedeep.readthedocs.io/en/latest/_modules/pytorch_widedeep/metrics.html#R2Score
 class R2(torch.nn.Module):
     def __init__(self):
         super().__init__()
@@ -33,7 +41,7 @@ class R2(torch.nn.Module):
         self.y_true_sum = 0
     def forward(self, y_pred: torch.Tensor, y_true: torch.Tensor):
         self.numerator += ((y_pred - y_true) ** 2).sum()
-        self.num_examples += y_true.shape[0]
+        self.num_examples += torch.prod(torch.tensor(y_true.shape))
         self.y_true_sum += y_true.sum()
         y_true_avg = self.y_true_sum / self.num_examples
         self.denominator += ((y_true - y_true_avg) ** 2).sum()

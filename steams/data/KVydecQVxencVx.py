@@ -8,7 +8,7 @@ import numpy as np
 from steams.utils.scale import param_scale
 from steams.dict.ext import scaling_dict
 
-class KVyQVx():
+class KVydecQVxencVx():
     def __init__(self, params: dict,subset_indice=None ):
 
         self.TO_SCALE = False
@@ -24,21 +24,21 @@ class KVyQVx():
         self.KEY = params['Y']['KEY']
         self.df_KEY = tmp_Y.loc[:, self.KEY]
 
-        self.VALUE_Y = params['Y']['VALUE']
-        self.df_VALUE_Y = tmp_Y.loc[:, self.VALUE_Y]
+        self.VALUE_Y_dec = params['Y']['VALUE_dec']
+        self.df_VALUE_Y_dec = tmp_Y.loc[:, self.VALUE_Y_dec]
 
         self.nb_location_Y = params['Y']['nb_location']
         self.history_length_Y = params['Y']['history_length']
         self.nb_sampling_Y = params['Y']['nb_sampling']
 
         # Scaling
-        self.scale_param_KEY = param_scale(self.df_KEY,'standardscaler')#'standardscaler')
-        self.scale_param_VALUE_Y = param_scale(self.df_VALUE_Y,'standardscaler')
+        self.scale_param_KEY = param_scale(self.df_KEY,'standardscaler')
+        self.scale_param_VALUE_Y_dec = param_scale(self.df_VALUE_Y_dec,'standardscaler')
 
         self.indice_Y = range(0,len(tmp_Y))
 
         # nb length
-        self.len_VALUE_Y = len(self.df_VALUE_Y.index)
+        self.len_VALUE_Y = len(self.df_VALUE_Y_dec.index)
 
         ################
         # TARGET: X    #
@@ -51,6 +51,9 @@ class KVyQVx():
         self.QUERY = params['X']['QUERY']
         self.df_QUERY = tmp_X.loc[:, self.QUERY]
 
+        self.VALUE_X_enc = params['X']['VALUE_enc']
+        self.df_VALUE_X_enc = tmp_X.loc[:, self.VALUE_X_enc]
+
         self.VALUE_X = params['X']['VALUE']
         self.df_VALUE_X = tmp_X.loc[:, self.VALUE_X]
 
@@ -60,7 +63,8 @@ class KVyQVx():
         self.nb_sampling_X = params['X']['nb_sampling']
 
         # Scaling
-        self.scale_param_QUERY = param_scale(self.df_QUERY,'standardscaler')#'standardscaler')
+        self.scale_param_QUERY = param_scale(self.df_QUERY,'standardscaler')
+        self.scale_param_VALUE_X_enc = param_scale(self.df_VALUE_X_enc,'standardscaler')
         self.scale_param_VALUE_X = param_scale(self.df_VALUE_X,'standardscaler')
 
         ## subset indice, rem: X decide for Y
@@ -95,6 +99,15 @@ class KVyQVx():
         QUERY_data = torch.from_numpy(tmp.to_numpy()).float()
         del(tmp)
 
+        ## VALUE_enc_X
+        tmp = self.df_VALUE_X_enc.loc[indice_X,self.VALUE_X_enc]
+        if self.TO_SCALE == True:
+            scaler = scaling_dict['StandardScaler']
+            tmp = scaler(tmp, self.scale_param_VALUE_X_enc, True)
+            self.SCALED = True
+        VALUE_X_enc_data = torch.from_numpy(tmp.to_numpy()).float()
+        del(tmp)
+
         ## VALUE_X
         tmp = self.df_VALUE_X.loc[indice_X,self.VALUE_X]
         if self.TO_SCALE == True:
@@ -126,14 +139,14 @@ class KVyQVx():
         del(tmp)
 
         ## values
-        tmp = self.df_VALUE_Y.loc[indice_Y,self.VALUE_Y]
+        tmp = self.df_VALUE_Y_dec.loc[indice_Y,self.VALUE_Y_dec]
         if self.TO_SCALE == True:
             scaler = scaling_dict['StandardScaler']
-            tmp = scaler(tmp, self.scale_param_VALUE_Y, True)
-        VALUE_Y_data = torch.from_numpy(tmp.to_numpy()).float()
+            tmp = scaler(tmp, self.scale_param_VALUE_Y_dec, True)
+        VALUE_Y_dec_data = torch.from_numpy(tmp.to_numpy()).float()
         del(tmp)
 
-        return KEY_data, VALUE_Y_data, QUERY_data, VALUE_X_data
+        return KEY_data, VALUE_Y_dec_data, QUERY_data, VALUE_X_enc_data, VALUE_X_data
 
     def get_rand_input(self):
 
@@ -154,14 +167,20 @@ class KVyQVx():
         QUERY_data = torch.from_numpy(tmp.to_numpy()).float()
         del(tmp)
 
+        ## VALUE_enc_X
+        tmp = self.df_VALUE_X_enc.loc[indice_X,self.VALUE_X_enc]
+        VALUE_X_enc_data = torch.from_numpy(tmp.to_numpy()).float()
+        del(tmp)
+
         ## VALUE_X
         tmp = self.df_VALUE_X.loc[indice_X,self.VALUE_X]
         VALUE_X_data = torch.from_numpy(tmp.to_numpy()).float()
         del(tmp)
 
-        ############
-        # features #
-        ############
+        ##############
+        # features:Y #
+        ##############
+
         id_Y = math.floor(id_X * self.len_VALUE_Y/self.len_VALUE_X )
 
         range_min = self.nb_location_Y * math.floor(id_Y/self.nb_location_Y)
@@ -176,11 +195,11 @@ class KVyQVx():
         del(tmp)
 
         ## values
-        tmp = self.df_VALUE_Y.loc[indice_Y,self.VALUE_Y]
-        VALUE_Y_data = torch.from_numpy(tmp.to_numpy()).float()
+        tmp = self.df_VALUE_Y_dec.loc[indice_Y,self.VALUE_Y_dec]
+        VALUE_Y_dec_data = torch.from_numpy(tmp.to_numpy()).float()
         del(tmp)
 
-        return (KEY_data, VALUE_Y_data, QUERY_data, VALUE_X_data)
+        return (KEY_data, VALUE_Y_dec_data, QUERY_data, VALUE_X_enc_data, VALUE_X_data)
 
     def __len__(self) -> int:
         return len(self.indice_X) - self.nb_location_X*(self.history_length_Y + self.gap_length_X + self.horizon_length_X)
@@ -209,9 +228,9 @@ class KVyQVx():
                 res = tmp
             else:
                 print('instance of tmp not known')
-        elif datatype == 'VALUE_Y':
+        elif datatype == 'VALUE_Y_dec':
             scaler = scaling_dict['StandardScaler']
-            tmp = scaler(tmp, self.scale_param_VALUE_Y, False)
+            tmp = scaler(tmp, self.scale_param_VALUE_Y_dec, False)
             if isinstance(newdata, torch.Tensor):
                 res = torch.from_numpy(tmp)
             elif isinstance(newdata, pd.Series) or isinstance(newdata, pd.DataFrame):
@@ -223,6 +242,17 @@ class KVyQVx():
         if datatype == 'QUERY' :
             scaler = scaling_dict['StandardScaler']
             tmp = scaler(tmp, self.scale_param_QUERY, False)
+            if isinstance(newdata, torch.Tensor):
+                res = torch.from_numpy(tmp)
+            elif isinstance(newdata, pd.Series) or isinstance(newdata, pd.DataFrame):
+                res = pd.DataFrame(tmp, index=newdata.index, columns=newdata.columns)
+            elif isinstance(newdata, np.ndarray):
+                res = tmp
+            else:
+                print('instance of tmp not known')
+        elif datatype == 'VALUE_X_enc':
+            scaler = scaling_dict['StandardScaler']
+            tmp = scaler(tmp, self.scale_param_VALUE_X_enc, False)
             if isinstance(newdata, torch.Tensor):
                 res = torch.from_numpy(tmp)
             elif isinstance(newdata, pd.Series) or isinstance(newdata, pd.DataFrame):
@@ -243,5 +273,5 @@ class KVyQVx():
             else:
                 print('instance of tmp not known')
         else:
-            print('datatype either KEY, VALUE_Y, QUERY or VALUE_X')
+            print('datatype either KEY, VALUE_Y_dec, QUERY, VALUE_X_enc, VALUE_X')
         return res

@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 import os
 
-def train(obj,train_class_data,valid_class_data,niter,n_iter_stop,batch_size, shuffle=False,sampler=None,batch_sampler=None,num_workers=0,pin_memory=False,resdir=None):
+def train(obj,train_class_data,valid_class_data,niter,n_iter_stop,batch_size, shuffle=False,num_workers=0,pin_memory=False,resdir=None):
     """
     Args:
         obj: steams object
@@ -20,8 +20,8 @@ def train(obj,train_class_data,valid_class_data,niter,n_iter_stop,batch_size, sh
         resdir
     """
 
-    train_data_loader = DataLoader(train_class_data,batch_size=batch_size, shuffle=shuffle,sampler=sampler,batch_sampler=batch_sampler,num_workers=num_workers,pin_memory=pin_memory)
-    valid_data_loader = DataLoader(valid_class_data,batch_size=batch_size, shuffle=shuffle,sampler=sampler,batch_sampler=batch_sampler,num_workers=num_workers,pin_memory=pin_memory)
+    train_data_loader = DataLoader(train_class_data,batch_size=batch_size, shuffle=shuffle,sampler=None,batch_sampler=None,num_workers=num_workers,pin_memory=pin_memory)
+    valid_data_loader = DataLoader(valid_class_data,batch_size=batch_size, shuffle=shuffle,sampler=None,batch_sampler=None,num_workers=num_workers,pin_memory=pin_memory)
 
     min_val_loss = np.Inf
     n_epochs_stop = n_iter_stop
@@ -60,7 +60,7 @@ def train(obj,train_class_data,valid_class_data,niter,n_iter_stop,batch_size, sh
     #model_.export_onnx(resdir,"fold_"+str(fold),train_fold,params_export_onnx)
 
 
-def eval(obj,valid_class_data,batch_size, shuffle=False,sampler=None,batch_sampler=None,num_workers=0,pin_memory=False,resdir=None):
+def eval(obj,valid_class_data,batch_size, shuffle=False,num_workers=0,pin_memory=False,resdir=None):
     """
     Args:
         obj: steams object
@@ -74,9 +74,9 @@ def eval(obj,valid_class_data,batch_size, shuffle=False,sampler=None,batch_sampl
         resdir
     """
 
-    valid_data_loader = DataLoader(valid_class_data,batch_size=batch_size, shuffle=shuffle,sampler=sampler,batch_sampler=batch_sampler,num_workers=num_workers,pin_memory=pin_memory)
+    valid_data_loader = DataLoader(valid_class_data,batch_size=batch_size, shuffle=shuffle,sampler=None,batch_sampler=None,num_workers=num_workers,pin_memory=pin_memory)
 
-    eval_tmp= obj.evaluation_bytarget(valid_data_loader,valid_class_data)
+    eval_tmp= obj.evaluation(valid_data_loader,valid_class_data)
     if (resdir  is not None):
         eval_tmp.to_csv(os.path.join(resdir,'eval.csv'))
     else:

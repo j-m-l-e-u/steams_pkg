@@ -1,8 +1,6 @@
 # steams
 
-A package for testing space-time prediction with multi-timeserie located at sparse locations.
-
-Package under dev: changes might occur at anytime.
+Space-time prediction with sparse and irregular space-time multi-timeseries.
 
 
 ## install

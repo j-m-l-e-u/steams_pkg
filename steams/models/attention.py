@@ -16,9 +16,9 @@ class NW0(torch.nn.Module):
     Weights scale the coordinates and are similar to non-uniform ranges for the variogram.
     We assume VALUE_X and VALUE_Y belonging to one identic process.
     So the scaling of KEY and QUERY is applied with an identic weight `W`.
-    Attention follows NW kernel with Gaussian Kernel.
+    Attention follows NW kernel with Gaussian Kernel.(sim. Gaussian variogram).
     """
-    def __init__(self, input_size,hidden_size):
+    def __init__(self, input_size,hidden_size,dropout=0.1):
         super(NW0, self).__init__()
 
         self.W = torch.nn.Sequential(
@@ -28,7 +28,9 @@ class NW0(torch.nn.Module):
             torch.nn.ReLU(),
             torch.nn.Linear(hidden_size, input_size))
 
-    def forward(self, KEY,VALUE,QUERY):
+        self.dropout = torch.nn.Dropout(dropout)
+
+    def forward(self, KEY,VALUE,QUERY,return_attention=False):
 
         Wk = self.W(KEY)
         Wq = self.W(QUERY)
@@ -40,21 +42,28 @@ class NW0(torch.nn.Module):
         # score
         score = torch.cdist(KEY_scale,QUERY_scale, p=2) # here, p=2
 
-        self.attention_weights = torch.nn.functional.softmax(-(score)**2 / 2, dim=1)
+        self.attention_weights = torch.nn.functional.softmax(-torch.pow(score,2) / 2, dim=1)
 
         # context
-        res = torch.einsum('bij,bik->bjk',self.attention_weights,VALUE)
+        context = torch.einsum('bij,bik->bjk',self.attention_weights,VALUE)
 
-        return(res)
+        #output
+        res = self.dropout(context)
+
+        if return_attention:
+            return res, self.attention_weights
+        else:
+            return res
+
 
 class NW1(torch.nn.Module):
     """
     Score is based on the distance of `Wk` and `Wq`.
     Weights scale the coordinates and are similar to non-uniform ranges for the variogram.
     We assume VALUE_X and VALUE_Y not belonging to one identic process.
-    Attention follows NW kernel with Gaussian Kernel.
+    Attention follows NW kernel with sqrtGaussian Kernel (sim. exponential variogram).
     """
-    def __init__(self, input_size,hidden_size):
+    def __init__(self, input_size,hidden_size,dropout=0.1):
         super(NW1, self).__init__()
 
         self.W = torch.nn.Sequential(
@@ -64,127 +73,41 @@ class NW1(torch.nn.Module):
             torch.nn.ReLU(),
             torch.nn.Linear(hidden_size, input_size))
 
-    def forward(self, KEY,VALUE,QUERY):
+        self.dropout = torch.nn.Dropout(dropout)
+
+    def forward(self, KEY,VALUE,QUERY,return_attention=False):
 
         Wk = self.W(KEY)
         Wq = self.W(QUERY)
+
+        # scaling
+        KEY_scale = torch.einsum('bij,bij->bij',KEY , Wk)
+        QUERY_scale = torch.einsum('bij,bij->bij',QUERY , Wq)
 
         # score
         score = torch.cdist(Wk,Wq, p=2) # here, p=2
 
-        self.attention_weights = torch.nn.functional.softmax(-(score)**2 / 2, dim=1)
+        self.attention_weights = torch.nn.functional.softmax(-(score) / 2, dim=1)
 
         # context
-        res = torch.einsum('bij,bik->bjk',self.attention_weights,VALUE)
+        context = torch.einsum('bij,bik->bjk',self.attention_weights,VALUE)
 
-        return(res)
+        #output
+        res = self.dropout(context)
+
+        if return_attention:
+            return res, self.attention_weights
+        else:
+            return res
+
 
 class NW2(torch.nn.Module):
-    """
-    Score is based on the distance of scaled coordinates.
-    Weights scale the coordinates and are similar to non-uniform ranges for the variogram.
-    We assume VALUE_X and VALUE_Y not belonging to one identic process.
-    So the scaling of KEY and QUERY is applied with two different weight `Wk` and `Wq`.
-    Attention follows NW kernel with a modified Gaussian Kernel, to remove the factor 0.5 and the power `2`.
-    """
-    def __init__(self, input_size,hidden_size):
+
+    def __init__(self,input_k, input_q, input_v, hidden_size,dropout=0.1):
         super(NW2, self).__init__()
 
-        self.Wk = torch.nn.Sequential(
-            torch.nn.Linear(input_size, hidden_size),
-            torch.nn.ReLU(),
-            torch.nn.Linear(hidden_size, hidden_size),
-            torch.nn.ReLU(),
-            torch.nn.Linear(hidden_size, input_size))
-
-        self.Wq = torch.nn.Sequential(
-            torch.nn.Linear(input_size, hidden_size),
-            torch.nn.ReLU(),
-            torch.nn.Linear(hidden_size, hidden_size),
-            torch.nn.ReLU(),
-            torch.nn.Linear(hidden_size, input_size))
-
-    def forward(self, KEY,VALUE,QUERY):
-
-        Wk = self.Wk(KEY)
-        Wq = self.Wq(QUERY)
-
-        # scaling
-        KEY_scale = torch.einsum('bij,bij->bij',KEY , Wk)
-        QUERY_scale = torch.einsum('bij,bij->bij',QUERY , Wq)
-
-        # score
-        score = torch.cdist(KEY_scale,QUERY_scale, p=1)
-
-        # attention
-        self.attention_weights = torch.nn.functional.softmax(-(score)**2 / 2, dim=1)
-
-        # context
-        res = torch.einsum('bij,bik->bjk',self.attention_weights,VALUE)
-
-        return(res)
-
-class NW3(torch.nn.Module):
-    """
-    Score is based on the distance of scaled coordinates.
-    Weights scale the coordinates and are similar to non-uniform ranges for the variogram.
-    We assume VALUE_X and VALUE_Y belonging to one identic process.
-    So the scaling of KEY and QUERY is applied with one identical weight `W`.
-    Weights scale the values.
-    Attention follows NW kernel with Gaussian Kernel.
-    """
-    def __init__(self, input_size,input_v, input_t, hidden_size):
-        super(NW3, self).__init__()
-
-        self.W = torch.nn.Sequential(
-            torch.nn.Linear(input_size, hidden_size),
-            torch.nn.ReLU(),
-            torch.nn.Linear(hidden_size, hidden_size),
-            torch.nn.ReLU(),
-            torch.nn.Linear(hidden_size, input_size))
-
-        self.Wv = torch.nn.Sequential(
-            torch.nn.Linear(input_v, hidden_size),
-            torch.nn.ReLU(),
-            torch.nn.Linear(hidden_size, hidden_size),
-            torch.nn.ReLU(),
-            torch.nn.Linear(hidden_size, hidden_size))
-
-        # W_ouput
-        self.Wo = torch.nn.Linear(hidden_size,input_t)
-
-    def forward(self, KEY,VALUE,QUERY):
-
-        Wk = self.W(KEY)
-        Wq = self.W(QUERY)
-        Wv = self.Wv(VALUE)
-
-        # scaling
-        KEY_scale = torch.einsum('bij,bij->bij',KEY , Wk)
-        QUERY_scale = torch.einsum('bij,bij->bij',QUERY , Wq)
-        VALUE_scale = torch.einsum('bij,bij->bij',VALUE , Wv)
-
-        # score
-        score = torch.cdist(KEY_scale,QUERY_scale, p=1)
-
-        # attention
-        self.attention_weights = torch.nn.functional.softmax(-(score)**2 / 2, dim=1)
-
-        # context
-        context = torch.einsum('bik,bij->bkj',self.attention_weights,VALUE_scale) # => 64 10 20
-
-        # output
-        res = self.Wo(context)
-
-        return(res)
-
-class NW4(torch.nn.Module):
-
-    def __init__(self,input_k, input_q, input_v, input_t, hidden_size):
-        super(NW4, self).__init__()
-
         # W_keys as an MLP
-        self.Wk = torch.nn.Sequential(
+        self.W = torch.nn.Sequential(
             torch.nn.Linear(input_k, hidden_size),
             torch.nn.ReLU(),
             torch.nn.Linear(hidden_size, hidden_size),
@@ -192,57 +115,112 @@ class NW4(torch.nn.Module):
             torch.nn.Linear(hidden_size, input_k),
             )
 
-        # W_queries as an MLP
-        self.Wq = torch.nn.Sequential(
+        # W_values as an MLP
+        self.Wo = torch.nn.Sequential(
             torch.nn.Linear(input_q, hidden_size),
             torch.nn.ReLU(),
             torch.nn.Linear(hidden_size, hidden_size),
             torch.nn.ReLU(),
-            torch.nn.Linear(hidden_size, input_q),
+            torch.nn.Linear(hidden_size, input_v),
             )
 
-        # W_values as an MLP
-        self.Wv = torch.nn.Sequential(
-            torch.nn.Linear(input_v, hidden_size),
-            torch.nn.ReLU(),
-            torch.nn.Linear(hidden_size, hidden_size),
-            torch.nn.ReLU(),
-            torch.nn.Linear(hidden_size, hidden_size),
-            )
+        self.dropout = torch.nn.Dropout(dropout)
 
-        # W_ouput
-        self.Wo = torch.nn.Linear(hidden_size,input_t)
+    def forward(self,KEY,VALUE,QUERY,return_attention=False):
 
-    def forward(self,KEY,VALUE,QUERY):
-
-        Wk = self.Wk(KEY)
-        Wq = self.Wq(QUERY)
-        Wv = self.Wv(VALUE)
+        Wk = self.W(KEY)
+        Wq = self.W(QUERY)
+        Wo = self.Wo(QUERY)  # with QUERY
 
         # scaling
         KEY_scale = torch.einsum('bij,bij->bij',KEY , Wk)
         QUERY_scale = torch.einsum('bij,bij->bij',QUERY , Wq)
-        VALUE_scale = torch.einsum('bij,bij->bij',VALUE , Wv)
 
         # score
         score = torch.cdist(KEY_scale,QUERY_scale, p=1)
 
         # attention
-        self.attention_weights = torch.nn.functional.softmax(-(score)**2 / 2, dim=1)
+        self.attention_weights = torch.nn.functional.softmax(-torch.pow(score,2) / 2, dim=1)
 
         # context
-        context = torch.einsum('bik,bij->bkj',self.attention_weights,VALUE_scale)
+        context = torch.einsum('bik,bij->bkj',self.attention_weights,VALUE)
+
+        context_scale = torch.einsum('bij,bij->bij',context , Wo)
 
         # output
-        res = self.Wo(context)
+        res = self.dropout(context_scale)
 
-        return(res)
+        if return_attention:
+            return res, self.attention_weights
+        else:
+            return res
+
+class NW3(torch.nn.Module):
+    """
+    Score is based on the distance of scaled coordinates.
+    Weights scale the coordinates and are similar to non-uniform ranges for the variogram.
+    We assume VALUE_X and VALUE_Y not belonging to one identic process.
+    So the scaling of KEY and QUERY is applied with two different weight `Wk` and `Wq`.
+    Besides, W0 convert VALUE_X into VALUE_Y.
+    Attention follows NW kernel with a modified Gaussian Kernel.
+    """
+    def __init__(self, input_k,input_v,hidden_size,dropout=0.1):
+        super(NW3, self).__init__()
+
+        self.Wk = torch.nn.Sequential(
+            torch.nn.Linear(input_k, hidden_size),
+            torch.nn.ReLU(),
+            torch.nn.Linear(hidden_size, hidden_size),
+            torch.nn.ReLU(),
+            torch.nn.Linear(hidden_size, input_k))
+
+        self.Wq = torch.nn.Sequential(
+            torch.nn.Linear(input_k, hidden_size),
+            torch.nn.ReLU(),
+            torch.nn.Linear(hidden_size, hidden_size),
+            torch.nn.ReLU(),
+            torch.nn.Linear(hidden_size, input_k))
+
+        self.Wo = torch.nn.Sequential(
+            torch.nn.Linear(input_v, hidden_size),
+            torch.nn.ReLU(),
+            torch.nn.Linear(hidden_size, hidden_size),
+            torch.nn.ReLU(),
+            torch.nn.Linear(hidden_size, input_v))
+
+        self.dropout = torch.nn.Dropout(dropout)
+
+    def forward(self, KEY,VALUE,QUERY,return_attention=False):
+
+        Wk = self.Wk(KEY)
+        Wq = self.Wq(QUERY)
+
+        # scaling
+        KEY_scale = torch.einsum('bij,bij->bij',KEY , Wk)
+        QUERY_scale = torch.einsum('bij,bij->bij',QUERY , Wq)
+
+        # score
+        score = torch.cdist(KEY_scale,QUERY_scale, p=1)
+
+        # attention
+        self.attention_weights = torch.nn.functional.softmax(-torch.pow(score,2) / 2, dim=1)
+
+        # context
+        context = torch.einsum('bij,bik->bjk',self.attention_weights,VALUE)
+
+        # output
+        res = self.dropout(self.Wo(context))
+
+        if return_attention:
+            return res, self.attention_weights
+        else:
+            return res
 
 ########
 ######## Scaled-dot-prod attention
 ########
 
-class NW5(torch.nn.Module):
+class NW4(torch.nn.Module):
     """
     Score is based on scaled dot product of scaled coordinates.
     Weights scale the coordinates and are similar to non-uniform ranges for the variogram.
@@ -250,8 +228,8 @@ class NW5(torch.nn.Module):
     So the scaling of KEY and QUERY is applied with one identical weight `W`.
     Attention follows NW kernel with Gaussian Kernel.
     """
-    def __init__(self, input_size,input_v, input_t, hidden_size):
-        super(NW5, self).__init__()
+    def __init__(self, input_size,input_v, input_t, hidden_size,dropout=0.1):
+        super(NW4, self).__init__()
 
         self.W = torch.nn.Sequential(
             torch.nn.Linear(input_size, hidden_size),
@@ -270,7 +248,9 @@ class NW5(torch.nn.Module):
         # W_ouput
         self.Wo = torch.nn.Linear(hidden_size,input_t)
 
-    def forward(self, KEY,VALUE,QUERY):
+        self.dropout = torch.nn.Dropout(dropout)
+
+    def forward(self, KEY,VALUE,QUERY,return_attention=False):
 
         Wk = self.W(KEY)
         Wq = self.W(QUERY)
@@ -286,22 +266,26 @@ class NW5(torch.nn.Module):
         score = torch.einsum('bij,bkj->bik',KEY_scale,QUERY_scale)/math.sqrt(d_wk)
 
         # attention
-        self.attention_weights = torch.nn.functional.softmax(-(score)**2 / 2, dim=1)
+        self.attention_weights = torch.nn.functional.softmax(-torch.pow(score,2) / 2, dim=1)
 
         # context
         context = torch.einsum('bik,bij->bkj',self.attention_weights,VALUE_scale) # => 64 10 20
 
         # output
-        res = self.Wo(context)
+        res = self.dropout(self.Wo(context))
 
-        return(res)
+        if return_attention:
+            return res, self.attention_weights
+        else:
+            return res
 
-class NW6(torch.nn.Module):
+
+class NW5(torch.nn.Module):
     """
     NW w/ scaled dot product
     """
-    def __init__(self,input_k, input_q, input_v, hidden_size, output_size):
-        super(NW6, self).__init__()
+    def __init__(self,input_k, input_q, input_v, input_t, hidden_size, dropout=0.1):
+        super(NW5, self).__init__()
 
         # W_keys as an MLP
         self.Wk = torch.nn.Sequential(
@@ -332,6 +316,8 @@ class NW6(torch.nn.Module):
 
         # W_ouput
         self.Wo = torch.nn.Linear(hidden_size,input_t)
+
+        self.dropout = torch.nn.Dropout(dropout)
 
     def forward(self,KEY,VALUE,QUERY,return_attention=False):
 
@@ -355,7 +341,7 @@ class NW6(torch.nn.Module):
         context = torch.einsum('bik,bij->bjk',self.attention_weights,VALUE_scale)
 
         # output
-        res = self.Wo(context)
+        res = self.dropout(self.Wo(context))
 
         if return_attention:
             return res, self.attention_weights
@@ -366,9 +352,9 @@ class NW6(torch.nn.Module):
 ###### additive attention
 ######
 
-class NW7(torch.nn.Module):
-    def __init__(self, input_size,input_v, hidden_size):
-        super(NW7, self).__init__()
+class NW6(torch.nn.Module):
+    def __init__(self, input_size,input_v, hidden_size,dropout=0.1):
+        super(NW6, self).__init__()
 
         self.W = torch.nn.Sequential(
             torch.nn.Linear(input_size, hidden_size),
@@ -384,7 +370,9 @@ class NW7(torch.nn.Module):
            torch.nn.ReLU(),
            torch.nn.Linear(hidden_size, input_v))
 
-    def forward(self, KEY,VALUE,QUERY):
+        self.dropout = torch.nn.Dropout(dropout)
+
+    def forward(self, KEY,VALUE,QUERY,return_attention=False):
 
         Wk = self.W(KEY)
         Wq = self.W(QUERY)
@@ -392,12 +380,19 @@ class NW7(torch.nn.Module):
         # score
         score = self.Ws(torch.tanh(Wk+Wq))
 
-        self.attention_weights = torch.nn.functional.softmax(-(score)**2 / 2, dim=1)
+        self.attention_weights = torch.nn.functional.softmax(-torch.pow(score,2) / 2, dim=1)
 
         # context
-        res = torch.einsum('bij,bij->bij',self.attention_weights,VALUE)
+        context = torch.einsum('bij,bij->bij',self.attention_weights,VALUE)
 
-        return(res)
+        # output
+        res = self.dropout(context)
+
+        if return_attention:
+            return res, self.attention_weights
+        else:
+            return res
+
 
 ###############################
 # MULTI-HEAD ATTENTION        #
@@ -410,7 +405,7 @@ class mha0(torch.nn.Module):
     So the scaling of KEY and QUERY is applied with one identical weight `W`.
     """
 
-    def __init__(self,input_k, input_v, hidden_size, output_size, num_heads=1):
+    def __init__(self,input_k, input_v, hidden_size, output_size, num_heads=1,dropout=0.1):
         super(mha0, self).__init__()
 
         assert hidden_size % num_heads == 0, "Hidden size must be 0 modulo number of heads."
@@ -429,11 +424,13 @@ class mha0(torch.nn.Module):
         # W_ouput
         self.Wo = torch.nn.Linear(hidden_size,output_size)
 
+        self.dropout = torch.nn.Dropout(dropout)
+
     def forward(self,KEY,VALUE,QUERY,return_attention=False):
 
-        Wk = self.W(KEY) # bij: 64x51x8
-        Wq = self.W(QUERY) # bkj: 64x20x8
-        Wv = self.Wv(VALUE) # bij: 64x51x8
+        Wk = self.W(KEY) # bij
+        Wq = self.W(QUERY) # bkj
+        Wv = self.Wv(VALUE) # bij
 
         ##############
         # multi-head #
@@ -465,7 +462,7 @@ class mha0(torch.nn.Module):
         output = torch.transpose(output,2,1) # bkj
 
         # prediction
-        res = self.Wo(output) # bkl
+        res = self.dropout(self.Wo(output)) # bkl
 
         if return_attention:
             return res, self.attention_weights
@@ -477,7 +474,7 @@ class mha1(torch.nn.Module):
     as in https://arxiv.org/abs/1706.03762
     """
 
-    def __init__(self,input_k, input_q, input_v, hidden_size, output_size, num_heads=1):
+    def __init__(self,input_k, input_q, input_v, hidden_size, output_size, num_heads=1,dropout=0.1):
         super(mha1, self).__init__()
 
         assert hidden_size % num_heads == 0, "Hidden size must be 0 modulo number of heads."
@@ -499,6 +496,8 @@ class mha1(torch.nn.Module):
 
         # W_ouput
         self.Wo = torch.nn.Linear(hidden_size,output_size)
+
+        self.dropout = torch.nn.Dropout(dropout)
 
     def forward(self,KEY,VALUE,QUERY,return_attention=False):
 
@@ -536,7 +535,7 @@ class mha1(torch.nn.Module):
         output = torch.transpose(output,2,1) # bkj
 
         # prediction
-        res = self.Wo(output) # bkl
+        res = self.dropout(self.Wo(output)) # bkl
 
         if return_attention:
             return res, self.attention_weights
@@ -547,7 +546,7 @@ class mha2(torch.nn.Module):
     """
     """
 
-    def __init__(self,input_k, input_q, input_v, hidden_size, output_size, num_heads=1):
+    def __init__(self,input_k, input_q, input_v, hidden_size, output_size, num_heads=1,dropout=0.1):
         super(mha2, self).__init__()
 
         assert hidden_size % num_heads == 0, "Hidden size must be 0 modulo number of heads."
@@ -585,6 +584,8 @@ class mha2(torch.nn.Module):
         # W_ouput
         self.Wo = torch.nn.Linear(hidden_size,output_size)
 
+        self.dropout = torch.nn.Dropout(dropout)
+
     def forward(self,KEY,VALUE,QUERY,return_attention=False):
 
         Wk = self.Wk(KEY) # bij: 64x51x8
@@ -607,7 +608,7 @@ class mha2(torch.nn.Module):
         score = torch.cdist(Wk,Wq, p=1)
 
         # attention weight
-        self.attention_weights = torch.nn.functional.softmax(-(score)**2 / 2, dim=1)
+        self.attention_weights = torch.nn.functional.softmax(-torch.pow(score,2) / 2, dim=1)
 
         # context
         output = torch.einsum('bhik,bhij->bhjk',self.attention_weights,Wv) # bh(j/h)k
@@ -620,7 +621,7 @@ class mha2(torch.nn.Module):
         output = torch.transpose(output,2,1) # bkj
 
         # prediction
-        res = self.Wo(output) # bkl
+        res = self.dropout(self.Wo(output)) # bkl
 
         if return_attention:
             return res, self.attention_weights

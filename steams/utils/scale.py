@@ -30,17 +30,19 @@ def minmax_scaler(data, param, Scale):
 
 
 def standard_scaler_pd(data, mean_data, std_data, Scale):
+    # https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#returning-a-view-versus-a-copy
+    tmp = data.copy()
     if Scale is True:
         for i in data:
             #tmp = data.apply(lambda x: (x - mean_data[i])/ std_data[i])
             #data = tmp
-            data[i] = (data[i]-mean_data[i][0])/ std_data[i][0]
+            tmp[i] = (data[i]-mean_data[i][0])/ std_data[i][0]
     if Scale is False:
         for i in data:
             #tmp = data.apply(lambda x: (x *std_data[i] + mean_data[i]))
             #data = tmp
-            data[i] = data[i]*std_data[i][0] + mean_data[i][0]
-    return data
+            tmp[i] = data[i]*std_data[i][0] + mean_data[i][0]
+    return tmp
 
 def standard_scaler_ndarray(data, mean_data, std_data, Scale):
     if Scale is True:
@@ -60,17 +62,19 @@ def standard_scaler_ndarray(data, mean_data, std_data, Scale):
     return data
 
 def minmax_scaler_pd(data, min_data, max_data, Scale):
+    # https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#returning-a-view-versus-a-copy
+    tmp = data.copy()
     if Scale is True:
         for i in data:
             #tmp = data.apply(lambda x: (x - min_data[i])/ (max_data[i] - min_data[i]))
             #data = tmp
-            data[i] = (data[i]-min_data[i][0]) / (max_data[i][0] - min_data[i][0])
+            tmp[i] = (data[i]-min_data[i][0]) / (max_data[i][0] - min_data[i][0])
     if Scale is False:
         for i in data:
             #tmp =data.apply(lambda x: (x *(max_data[i] - min_data[i]) + min_data[i]))
             #data = tmp
-            data[i] = data[i] * (max_data[i][0] - min_data[i][0]) + min_data[i][0]
-    return data
+            tmp[i] = data[i] * (max_data[i][0] - min_data[i][0]) + min_data[i][0]
+    return tmp
 
 def minmax_scaler_ndarray(data, min_data, max_data, Scale):
     if Scale is True:

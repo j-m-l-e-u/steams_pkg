@@ -8,7 +8,7 @@ import numpy as np
 from steams.utils.scale import param_scale
 from steams.dict.ext import scaling_dict
 
-class KVyQVx():
+class irKVyQVx():
     def __init__(self, params: dict,subset_indice=None ):
 
         self.TO_SCALE = False
@@ -27,8 +27,6 @@ class KVyQVx():
         self.VALUE_Y = params['Y']['VALUE']
         self.df_VALUE_Y = tmp_Y.loc[:, self.VALUE_Y]
 
-        self.nb_location_Y = params['Y']['nb_location']
-        self.history_length_Y = params['Y']['history_length']
         self.nb_sampling_Y = params['Y']['nb_sampling']
 
         # Scaling
@@ -54,9 +52,6 @@ class KVyQVx():
         self.VALUE_X = params['X']['VALUE']
         self.df_VALUE_X = tmp_X.loc[:, self.VALUE_X]
 
-        self.nb_location_X = params['X']['nb_location']
-        self.gap_length_X = params['X']['gap_length']
-        self.horizon_length_X = params['X']['horizon_length']
         self.nb_sampling_X = params['X']['nb_sampling']
 
         # Scaling
@@ -80,10 +75,7 @@ class KVyQVx():
         id_X = self.indice_X[id]
 
         ## indice of the target:
-        range_min = self.nb_location_X * (math.floor(id_X/self.nb_location_X) + self.history_length_Y + self.gap_length_X)
-        range_max = self.nb_location_X * (math.floor(id_X/self.nb_location_X) + 1 + self.history_length_Y + self.gap_length_X + self.horizon_length_X)
-        range_max = min(range_max,self.len_VALUE_X)
-        range_ = range(range_min,range_max)
+        range_ = range(id_X,self.len_VALUE_X)
         indice_X = random.sample([x for x in range_ ], min(len(range_),(self.nb_sampling_X)))
 
         ## QUERY
@@ -110,10 +102,7 @@ class KVyQVx():
 
         id_Y = math.floor(id_X * self.len_VALUE_Y/self.len_VALUE_X )
 
-        range_min = self.nb_location_Y * math.floor(id_Y/self.nb_location_Y)
-        range_max = self.nb_location_Y * (math.floor(id_Y/self.nb_location_Y) +1 + self.history_length_Y )
-        range_max = min(range_max,self.len_VALUE_Y)
-        range_ = range(range_min,range_max)
+        range_ = range(id_Y,self.len_VALUE_Y)
         indice_Y = random.sample([x for x in range_ ], min(len(range_),(self.nb_sampling_Y)))
 
         ## coordinates (x,y,...)
@@ -143,10 +132,7 @@ class KVyQVx():
         id_X = self.indice_X[0]
 
         ## indice of the target:
-        range_min = self.nb_location_X * (math.floor(id_X/self.nb_location_X) + self.history_length_Y + self.gap_length_X)
-        range_max = self.nb_location_X * (math.floor(id_X/self.nb_location_X) + 1 + self.history_length_Y + self.gap_length_X + self.horizon_length_X)
-        range_max = min(range_max,self.len_VALUE_X)
-        range_ = range(range_min,range_max)
+        range_ = range(id_X,self.len_VALUE_X)
         indice_X = random.sample([x for x in range_ ], min(len(range_),(self.nb_sampling_X)))
 
         ## QUERY
@@ -159,15 +145,13 @@ class KVyQVx():
         VALUE_X_data = torch.from_numpy(tmp.to_numpy()).float()
         del(tmp)
 
-        ############
-        # features #
-        ############
+        ##############
+        # features:Y #
+        ##############
+
         id_Y = math.floor(id_X * self.len_VALUE_Y/self.len_VALUE_X )
 
-        range_min = self.nb_location_Y * math.floor(id_Y/self.nb_location_Y)
-        range_max = self.nb_location_Y * (math.floor(id_Y/self.nb_location_Y) +1 + self.history_length_Y )
-        range_max = min(range_max,self.len_VALUE_Y)
-        range_ = range(range_min,range_max)
+        range_ = range(id_Y,self.len_VALUE_Y)
         indice_Y = random.sample([x for x in range_ ], min(len(range_),(self.nb_sampling_Y)))
 
         ## coordinates (x,y,...)
@@ -181,6 +165,9 @@ class KVyQVx():
         del(tmp)
 
         return (KEY_data, VALUE_Y_data, QUERY_data, VALUE_X_data)
+
+    def get_scale_param_target(self):
+        return self.scale_param_coordinates, self.scale_param_values
 
     def __len__(self) -> int:
         return len(self.indice_X) - self.nb_location_X*(self.history_length_Y + self.gap_length_X + self.horizon_length_X)
@@ -197,10 +184,9 @@ class KVyQVx():
             tmp = newdata
         else:
             print('instance of newdata not known')
-
-        if datatype == 'KEY' :
+        if datatype == 'values' :
             scaler = scaling_dict['StandardScaler']
-            tmp = scaler(tmp, self.scale_param_KEY, False)
+            res = scaler(tmp, self.scale_param_values, False)
             if isinstance(newdata, torch.Tensor):
                 res = torch.from_numpy(tmp)
             elif isinstance(newdata, pd.Series) or isinstance(newdata, pd.DataFrame):
@@ -209,31 +195,9 @@ class KVyQVx():
                 res = tmp
             else:
                 print('instance of tmp not known')
-        elif datatype == 'VALUE_Y':
-            scaler = scaling_dict['StandardScaler']
-            tmp = scaler(tmp, self.scale_param_VALUE_Y, False)
-            if isinstance(newdata, torch.Tensor):
-                res = torch.from_numpy(tmp)
-            elif isinstance(newdata, pd.Series) or isinstance(newdata, pd.DataFrame):
-                res = pd.DataFrame(tmp, index=newdata.index, columns=newdata.columns)
-            elif isinstance(newdata, np.ndarray):
-                res = tmp
-            else:
-                print('instance of tmp not known')
-        if datatype == 'QUERY' :
-            scaler = scaling_dict['StandardScaler']
-            tmp = scaler(tmp, self.scale_param_QUERY, False)
-            if isinstance(newdata, torch.Tensor):
-                res = torch.from_numpy(tmp)
-            elif isinstance(newdata, pd.Series) or isinstance(newdata, pd.DataFrame):
-                res = pd.DataFrame(tmp, index=newdata.index, columns=newdata.columns)
-            elif isinstance(newdata, np.ndarray):
-                res = tmp
-            else:
-                print('instance of tmp not known')
-        elif datatype == 'VALUE_X':
-            scaler = scaling_dict['StandardScaler']
-            tmp = scaler(tmp, self.scale_param_VALUE_X, False)
+        elif datatype == 'coordinates':
+            scaler = scaling_dict['MinMaxScaler']
+            res = scaler(tmp, self.scale_param_features, False)
             if isinstance(newdata, torch.Tensor):
                 res = torch.from_numpy(tmp)
             elif isinstance(newdata, pd.Series) or isinstance(newdata, pd.DataFrame):
@@ -243,5 +207,5 @@ class KVyQVx():
             else:
                 print('instance of tmp not known')
         else:
-            print('datatype either KEY, VALUE_Y, QUERY or VALUE_X')
+            print('datatype either values or coordinates')
         return res

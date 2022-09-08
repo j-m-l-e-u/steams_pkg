@@ -23,7 +23,6 @@ setup(
         'steams',
         'steams.data',
         "steams.dict",
-        "steams.krig",
         "steams.models",
         "steams.train_eval_pred",
         "steams.utils"],
