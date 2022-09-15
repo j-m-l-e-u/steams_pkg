@@ -28,7 +28,7 @@ class variance(torch.nn.Module):
         super().__init__()
     def forward(self, target: torch.Tensor, y_pred: torch.Tensor):
         bias = torch.mean(y_pred-target)
-        res = torch.mean(torch.abs(y_pred - bias))**2
+        res = torch.mean(torch.abs(y_pred - target - bias))**2
         return res
 
 # adapted from https://pytorch-widedeep.readthedocs.io/en/latest/_modules/pytorch_widedeep/metrics.html#R2Score
