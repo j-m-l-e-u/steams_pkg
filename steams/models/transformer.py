@@ -1,10 +1,10 @@
-#######
-####### UNDER DEV, might change at any time
-#######
+#######                                      ####### 
+####### UNDER DEV, might change at any time  #######
+#######                                      #######
 
 import torch
 from torch import nn
-from steams.models.attention import mha1
+from steams.models.mha import mha1
 
 
 ###

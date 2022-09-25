@@ -1,7 +1,5 @@
 import os
 import torch
-import pandas as pd
-import numpy as np
 
 class class_steams():
     def __init__(self,model,device):
@@ -95,10 +93,10 @@ class attention_steams(class_steams):
                 output = self.model(KEY_Y.float(),VALUE_Y.float(), QUERY_X.float())
 
                 #unscale
-                output_unscale = class_data.unscale(output,"VALUE_X")
-                VALUE_X_unscale = class_data.unscale(VALUE_X,"VALUE_X")
+                output_unscale = class_data.unscale(output,"VALUE_X").to(self.device)
+                VALUE_X_unscale = class_data.unscale(VALUE_X,"VALUE_X").to(self.device)
 
-                loss_ = self.criterion( VALUE_X.float(),output_unscale)
+                loss_ = self.criterion( VALUE_X_unscale.float(),output_unscale)
                 running_loss += loss_.item()
 
             avg_loss = running_loss / (float(i)+1.)
@@ -118,8 +116,8 @@ class attention_steams(class_steams):
 
             VALUE_X_pred = self.model(KEY_Y.float() ,VALUE_Y.float() ,QUERY_X.float() ).detach()
 
-            VALUE_X_pred_unscaled = class_data.unscale(VALUE_X_pred,"VALUE_X")
-            QUERY_X_unscaled = class_data.unscale(QUERY_X.detach().numpy(),"QUERY")
+            VALUE_X_pred_unscaled = class_data.unscale(VALUE_X_pred,"VALUE_X").to(self.device)
+            QUERY_X_unscaled = class_data.unscale(QUERY_X.detach(),"QUERY").to(self.device)
 
         return QUERY_X_unscaled, VALUE_X_pred_unscaled
 
@@ -181,8 +179,8 @@ class attention_ae_steams(class_steams):
                 output = self.model(KEY_Y.float(),VALUE_Y.float())
 
                 ##unscale
-                output_unscale = class_data.unscale(output,"VALUE_Y")
-                VALUE_Y_unscale = class_data.unscale(VALUE_Y,"VALUE_Y")
+                output_unscale = class_data.unscale(output,"VALUE_Y").to(self.device)
+                VALUE_Y_unscale = class_data.unscale(VALUE_Y,"VALUE_Y").to(self.device)
 
                 loss_ = self.criterion( VALUE_Y_unscale.float(),output_unscale)
                 running_loss += loss_.item()
@@ -202,8 +200,8 @@ class attention_ae_steams(class_steams):
 
             VALUE_Y_pred = self.model(KEY_Y.float() ,VALUE_Y.float()).detach()
 
-            VALUE_Y_pred_unscaled = class_data.unscale(VALUE_Y_pred,"VALUE_Y")
-            KEY_Y_unscaled = class_data.unscale(KEY_Y.detach().numpy(),"KEY")
+            VALUE_Y_pred_unscaled = class_data.unscale(VALUE_Y_pred,"VALUE_Y").to(self.device)
+            KEY_Y_unscaled = class_data.unscale(KEY_Y.detach(),"KEY").to(self.device)
 
         return KEY_Y_unscaled, VALUE_Y_pred_unscaled
 
@@ -212,9 +210,9 @@ class attention_ae_steams(class_steams):
 ####### UNDER DEV, might change at any time
 #######
 
-class nw0rmer_steams(class_steams):
+class madsormer_steams(class_steams):
     def __init__(self,model,device):
-        super(nw0rmer_steams, self).__init__(model,device)
+        super(madsormer_steams, self).__init__(model,device)
 
     def single_train(self, data_loader):
         running_loss = 0.0
@@ -273,8 +271,8 @@ class nw0rmer_steams(class_steams):
                 output = self.model(QUERY_X.float(),VALUE_X_enc.float(), KEY_Y.float(),VALUE_Y_dec.float())[0]
 
                 #unscale
-                output_unscale = class_data.unscale(output,"VALUE_X")
-                VALUE_X_unscale = class_data.unscale(VALUE_X,"VALUE_X")
+                output_unscale = class_data.unscale(output,"VALUE_X").to(self.device)
+                VALUE_X_unscale = class_data.unscale(VALUE_X,"VALUE_X").to(self.device)
 
                 loss_ = self.criterion( VALUE_X_unscale.float(),output_unscale)
                 running_loss += loss_.item()
@@ -298,8 +296,8 @@ class nw0rmer_steams(class_steams):
 
             VALUE_X_pred = self.model(QUERY_X.float(),VALUE_X_enc.float(), KEY_Y.float(),VALUE_Y_dec.float())[0].detach()
 
-            VALUE_X_pred_unscaled = class_data.unscale(VALUE_X_pred,"VALUE_X")
-            QUERY_X_unscaled = class_data.unscale(QUERY_X.detach().numpy(),"QUERY")
+            VALUE_X_pred_unscaled = class_data.unscale(VALUE_X_pred,"VALUE_X").to(self.device)
+            QUERY_X_unscaled = class_data.unscale(QUERY_X.detach(),"QUERY").to(self.device)
 
         return QUERY_X_unscaled, VALUE_X_pred_unscaled
 
@@ -364,8 +362,8 @@ class transformer_coords_steams(class_steams):
                 output = self.model(QUERY_X.float(),KEY_Y.float(),VALUE_Y.float())[0]
 
                 #unscale
-                output_unscale = class_data.unscale(output,"VALUE_X")
-                VALUE_X_unscale = class_data.unscale(VALUE_X,"VALUE_X")
+                output_unscale = class_data.unscale(output,"VALUE_X").to(self.device)
+                VALUE_X_unscale = class_data.unscale(VALUE_X,"VALUE_X").to(self.device)
 
                 loss_ = self.criterion( VALUE_X_unscale.float(),output_unscale)
                 running_loss += loss_.item()
@@ -388,7 +386,7 @@ class transformer_coords_steams(class_steams):
 
             VALUE_X_pred = self.model(QUERY_X.float(),VALUE_X_enc.float(), KEY_Y.float(),VALUE_Y_dec.float())[0].detach()
 
-            VALUE_X_pred_unscaled = class_data.unscale(VALUE_X_pred,"VALUE_X")
-            QUERY_X_unscaled = class_data.unscale(QUERY_X.detach().numpy(),"QUERY")
+            VALUE_X_pred_unscaled = class_data.unscale(VALUE_X_pred,"VALUE_X").to(self.device)
+            QUERY_X_unscaled = class_data.unscale(QUERY_X.detach(),"QUERY").to(self.device)
 
         return QUERY_X_unscaled, VALUE_X_pred_unscaled

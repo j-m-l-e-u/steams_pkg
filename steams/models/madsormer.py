@@ -1,27 +1,24 @@
-#######
-####### UNDER DEV, might change at any time
-#######
+#######                                      #######
+####### UNDER DEV, might change at any time  #######
+#######                                      #######
 
 import torch
 from torch import nn
-from steams.models.attention import NW0
+from steams.models.mads import madsnn
 
 
 ###
-### NW0mer
+### madsormer
 ###
-class NW0mer(nn.Module):
-    """
-    NW0mer
-    """
-    def __init__(self,num_layers=1, input_k=3, input_v=1,hidden_size=20, dim_feedforward=20, dropout=0.1):
+class madsormer(nn.Module):
+    def __init__(self,num_layers=1, device,type="nwd",kernel="gauss",input_k=3, input_v=1,hidden_size=20, dim_feedforward=20, dropout=0.1):
         super().__init__()
 
         input_size = input_k + input_v
         #input_size = input_k
 
-        self.encoder = NW0merEncoder(num_layers=num_layers,input_size=input_size, hidden_size=hidden_size, dim_feedforward=dim_feedforward, dropout=dropout)
-        self.decoder = NW0merDecoder(num_layers=num_layers,input_size=input_size, hidden_size=hidden_size, dim_feedforward=dim_feedforward, dropout=dropout)
+        self.encoder = madsormerEncoder(num_layers=num_layers,device=device, type=type, kernel=kernel, input_size=input_size, hidden_size=hidden_size, dim_feedforward=dim_feedforward, dropout=dropout)
+        self.decoder = madsormerDecoder(num_layers=num_layers,device=device, type=type, kernel=kernel, input_size=input_size, hidden_size=hidden_size, dim_feedforward=dim_feedforward, dropout=dropout)
         self.fc = nn.Linear(input_size, input_v)
 
     def positioning(self,KEY,VALUE):
@@ -46,14 +43,14 @@ class NW0mer(nn.Module):
 
 
 ###
-### NWormer AE
+### madsormer AE
 ###
-class NW0mer_ae(nn.Module):
-    def __init__(self, num_layers=1, input_k=3, input_v=1, hidden_size=20, dim_feedforward=20, dropout=0.1):
+class madsormer_ae(nn.Module):
+    def __init__(self, num_layers=1,  device, type="nwd", kernel="gauss", input_k=3, input_v=1, hidden_size=20, dim_feedforward=20, dropout=0.1):
         super().__init__()
         input_size = input_k + input_v
 
-        self.encoder = NW0merEncoder(num_layers=num_layers,input_size=input_size, hidden_size=hidden_size, dim_feedforward=dim_feedforward, dropout=dropout)
+        self.encoder = madsormerEncoder(num_layers=num_layers,device=device,type=type,kernel=kernel,input_size=input_size, hidden_size=hidden_size, dim_feedforward=dim_feedforward, dropout=dropout)
         self.fc = nn.Linear(input_size, input_v)
 
     def positioning(self,KEY,VALUE):
@@ -67,12 +64,12 @@ class NW0mer_ae(nn.Module):
 
 
 ###
-### NW0mer Encoder
+### madsormer Encoder
 ###
-class NW0merEncoder(nn.Module):
+class madsormerEncoder(nn.Module):
     def __init__(self, num_layers, **block_args):
         super().__init__()
-        self.layers = nn.ModuleList([NW0EncoderBlock(**block_args) for _ in range(num_layers)])
+        self.layers = nn.ModuleList([madsEncoderBlock(**block_args) for _ in range(num_layers)])
 
     def forward(self, X):
         self.attention_maps = []
@@ -85,12 +82,12 @@ class NW0merEncoder(nn.Module):
     def get_attention_maps(self):
         return self.attention_maps
 
-class NW0EncoderBlock(nn.Module):
-    def __init__(self, input_size,hidden_size,dim_feedforward,dropout=0.1):
+class madsEncoderBlock(nn.Module):
+    def __init__(self, device,type, kernel, input_size,hidden_size,dim_feedforward,dropout=0.1):
         super().__init__()
 
         # Self-Attention layer
-        self.self_attn = NW0(input_size, hidden_size, dropout)
+        self.self_attn = madsnn(device,type,kernel,input_size, hidden_size, dropout)
 
         # add norm 1
         self.norm1 = torch.nn.LayerNorm(input_size)
@@ -125,12 +122,12 @@ class NW0EncoderBlock(nn.Module):
 
 
 ###
-### NW0mer Decoder
+### madsormer Decoder
 ###
-class NW0merDecoder(nn.Module):
+class madsormerDecoder(nn.Module):
     def __init__(self, num_layers, **block_args):
         super().__init__()
-        self.layers = nn.ModuleList([NW0DecoderBlock(**block_args) for _ in range(num_layers)])
+        self.layers = nn.ModuleList([madsDecoderBlock(**block_args) for _ in range(num_layers)])
 
     def forward(self, Y,X_enc):
         self.attention_maps = [[] * len(self.layers) for _ in range (2)]
@@ -146,18 +143,18 @@ class NW0merDecoder(nn.Module):
     def get_attention_maps(self):
         return self.attention_maps
 
-class NW0DecoderBlock(nn.Module):
-    def __init__(self, input_size,hidden_size,dim_feedforward,dropout=0.1):
+class madsDecoderBlock(nn.Module):
+    def __init__(self, device,type,kernel,input_size,hidden_size,dim_feedforward,dropout=0.1):
         super().__init__()
 
         # Self-Attention layer
-        self.self_attn = NW0(input_size, hidden_size, dropout)
+        self.self_attn = madsnn(device,type,kernel,input_size, hidden_size, dropout)
 
         # Layers to apply in between the main layers
         self.norm1 = torch.nn.LayerNorm(input_size)
 
         # Cross-Attention
-        self.cross_attn = NW0(input_size, hidden_size, dropout)
+        self.cross_attn = madsnn(device,type,kernel,input_size, hidden_size, dropout)
 
         # Layers to apply in between the main layers
         self.norm2 = torch.nn.LayerNorm(input_size)

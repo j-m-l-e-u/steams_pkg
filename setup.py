@@ -16,15 +16,14 @@ dev_requirements = []
 
 setup(
     name='steams',
-    version='0.05dev',
+    version='0.10dev',
     author="Jean-Marie Lepioufle",
     author_email="jml@nilu.no",
     packages=[
         'steams',
         'steams.data',
-        "steams.dict",
         "steams.models",
-        "steams.train_eval_pred",
+        "steams.tepe",
         "steams.utils"],
     license='MIT + Copyright NILU',
     description='Space-time prediction with sparse and irregular space-time multi-timeserie.',

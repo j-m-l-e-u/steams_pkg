@@ -5,8 +5,7 @@ import random
 import math
 import os
 import numpy as np
-from steams.utils.scale import param_scale
-from steams.dict.ext import scaling_dict
+from steams.utils.scale import param_scale,standard_scaler
 
 class irKVyQVx():
     def __init__(self, params: dict,subset_indice=None ):
@@ -81,8 +80,7 @@ class irKVyQVx():
         ## QUERY
         tmp = self.df_QUERY.iloc[indice_X]
         if self.TO_SCALE == True:
-            #scaler = scaling_dict['MinMaxScaler']
-            scaler = scaling_dict['StandardScaler']
+            scaler = standard_scaler
             tmp = scaler(tmp, self.scale_param_QUERY, True)
         QUERY_data = torch.from_numpy(tmp.to_numpy()).float()
         del(tmp)
@@ -90,7 +88,7 @@ class irKVyQVx():
         ## VALUE_X
         tmp = self.df_VALUE_X.loc[indice_X,self.VALUE_X]
         if self.TO_SCALE == True:
-            scaler = scaling_dict['StandardScaler']
+            scaler = standard_scaler
             tmp = scaler(tmp, self.scale_param_VALUE_X, True)
             self.SCALED = True
         VALUE_X_data = torch.from_numpy(tmp.to_numpy()).float()
@@ -108,8 +106,7 @@ class irKVyQVx():
         ## coordinates (x,y,...)
         tmp = self.df_KEY.iloc[indice_Y]
         if self.TO_SCALE == True:
-            #scaler = scaling_dict['MinMaxScaler']
-            scaler = scaling_dict['StandardScaler']
+            scaler = standard_scaler
             tmp = scaler(tmp, self.scale_param_KEY, True)
         KEY_data = torch.from_numpy(tmp.to_numpy()).float()
         del(tmp)
@@ -117,7 +114,7 @@ class irKVyQVx():
         ## values
         tmp = self.df_VALUE_Y.loc[indice_Y,self.VALUE_Y]
         if self.TO_SCALE == True:
-            scaler = scaling_dict['StandardScaler']
+            scaler = standard_scaler
             tmp = scaler(tmp, self.scale_param_VALUE_Y, True)
         VALUE_Y_data = torch.from_numpy(tmp.to_numpy()).float()
         del(tmp)
@@ -185,7 +182,7 @@ class irKVyQVx():
         else:
             print('instance of newdata not known')
         if datatype == 'values' :
-            scaler = scaling_dict['StandardScaler']
+            scaler = standard_scaler
             res = scaler(tmp, self.scale_param_values, False)
             if isinstance(newdata, torch.Tensor):
                 res = torch.from_numpy(tmp)
