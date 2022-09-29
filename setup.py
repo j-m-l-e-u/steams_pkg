@@ -12,11 +12,9 @@ if os.path.isfile(requirementPath):
     with open(requirementPath) as f:
         install_requires = f.read().splitlines()
 
-dev_requirements = []
-
 setup(
     name='steams',
-    version='0.10dev',
+    version='0.10',
     author="Jean-Marie Lepioufle",
     author_email="jml@nilu.no",
     packages=[
@@ -28,8 +26,9 @@ setup(
     license='MIT + Copyright NILU',
     description='Space-time prediction with sparse and irregular space-time multi-timeserie.',
     long_description = long_description,
-    url="https://git.nilu.no/aqdl/steams",
+    url="https://git.nilu.no/aqdl/steams_pkg",
     python_requires='>=3.8',
     install_requires=install_requires,
     extras_require={
-        'dev': dev_requirements})
+        "examples": ["ipython", "jupyter", "os", "matplotlib"],
+    })

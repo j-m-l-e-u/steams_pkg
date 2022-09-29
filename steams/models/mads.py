@@ -247,6 +247,9 @@ class madsnn3(torch.nn.Module):
         else:
             return res
 
+################
+## kriging    ##
+################
 class class_krig():
     def __init__(self,device,kernel="exp"):
         self.device = device
@@ -307,16 +310,14 @@ class class_krig():
         # Euclidian scaled distance matrix between points [x,y]_i, i:1->n and points [x,y]_star
         dist = torch.cdist(KEY,QUERY, p=2)
 
-        # exponential variogram of variance equal to 1
+        # variogram of variance equal to 1
         res = self.variog(dist)
-        # Lagrangian multiplier
 
+        # Lagrangian multiplier
         ## tensor [b,1,N]
         lm = torch.tensor((), dtype=torch.float64).to(self.device)
         lm = lm.new_zeros((res.shape[0],1,res.shape[2]))
         res = torch.cat((res,lm),1)
-
-        #res = torch.reshape(res,(res.shape[0],res.shape[2],res.shape[1]))
 
         return(res)
 
@@ -342,6 +343,9 @@ class class_krig():
         res = torch.einsum('bij,bik->bjk',self.weights,VALUE)
         return(res)
 
+############################################
+## Nadaraya-Watson with distance as score ##
+############################################
 class class_nwd():
     def __init__(self,device,kernel="gauss"):
         self.device = device
