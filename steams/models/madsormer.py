@@ -11,7 +11,7 @@ from steams.models.mads import madsnn
 ### madsormer
 ###
 class madsormer(nn.Module):
-    def __init__(self,num_layers=1, device,type="nwd",kernel="gauss",input_k=3, input_v=1,hidden_size=20, dim_feedforward=20, dropout=0.1):
+    def __init__(self,num_layers, device,type="nwd",kernel="gauss",input_k=3, input_v=1,hidden_size=20, dim_feedforward=20, dropout=0.1):
         super().__init__()
 
         input_size = input_k + input_v
@@ -24,6 +24,7 @@ class madsormer(nn.Module):
     def positioning(self,KEY,VALUE):
         X = torch.cat((KEY,VALUE), dim=-1)
         return X
+
     #def positioning(self,KEY,VALUE):
     #    X = torch.repeat_interleave(VALUE, KEY.size(-1), dim=-1)
     #    X = X + KEY
@@ -31,6 +32,9 @@ class madsormer(nn.Module):
 
 
     def forward(self, QUERY_X, VALUE_X, KEY_Y, VALUE_Y):
+
+        # embedding
+        #...
 
         X = self.positioning(QUERY_X, VALUE_X)
         Y = self.positioning(KEY_Y, VALUE_Y)
@@ -46,7 +50,7 @@ class madsormer(nn.Module):
 ### madsormer AE
 ###
 class madsormer_ae(nn.Module):
-    def __init__(self, num_layers=1,  device, type="nwd", kernel="gauss", input_k=3, input_v=1, hidden_size=20, dim_feedforward=20, dropout=0.1):
+    def __init__(self, num_layers,  device, type="nwd", kernel="gauss", input_k=3, input_v=1, hidden_size=20, dim_feedforward=20, dropout=0.1):
         super().__init__()
         input_size = input_k + input_v
 

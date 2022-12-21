@@ -52,6 +52,7 @@ class mads2(torch.nn.Module):
 
         Wk = torch.einsum('bij,j->bij',torch.ones(KEY.shape, device=self.attention.device),self.W)
         Wq = torch.einsum('bij,j->bij',torch.ones(QUERY.shape, device=self.attention.device),self.W)
+        Wo = torch.einsum('bij,j->bij',torch.ones(VALUE.shape, device=self.attention.device),self.Wo)
 
         # scaling
         KEY_scaled = torch.einsum('bij,bij->bij',KEY , Wk)
@@ -84,8 +85,9 @@ class mads3(torch.nn.Module):
 
     def forward(self,KEY,VALUE,QUERY,return_attention=False):
 
-        Wk = torch.einsum('bij,j->bij',torch.ones(KEY.shape),self.Wk)
-        Wq = torch.einsum('bij,j->bij',torch.ones(QUERY.shape),self.Wq)
+        Wk = torch.einsum('bij,j->bij',torch.ones(KEY.shape, device=self.attention.device),self.Wk)
+        Wq = torch.einsum('bij,j->bij',torch.ones(QUERY.shape, device=self.attention.device),self.Wq)
+        Wo = torch.einsum('bij,j->bij',torch.ones(VALUE.shape, device=self.attention.device),self.Wo)
 
         # scaling
         KEY_scaled = torch.einsum('bij,bij->bij',KEY , Wk)

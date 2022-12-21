@@ -36,6 +36,10 @@ class class_steams():
         model_path = os.path.join(path, name + "_model.pth")
         torch.save(self.model.state_dict(), model_path)
 
+    def load_model(self,path:str, name:str) -> None:
+        model_path = os.path.join(path, name + "_model.pth")
+        self.model.load_state_dict(torch.load(model_path))
+
 class attention_steams(class_steams):
     def __init__(self,model,device):
         super(attention_steams, self).__init__(model,device)
@@ -300,6 +304,7 @@ class madsormer_steams(class_steams):
             QUERY_X_unscaled = class_data.unscale(QUERY_X.detach(),"QUERY").to(self.device)
 
         return QUERY_X_unscaled, VALUE_X_pred_unscaled
+
 
 #######
 ####### UNDER DEV, might change at any time
