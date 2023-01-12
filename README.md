@@ -2,8 +2,16 @@
 
 Space-time prediction with sparse and irregular space-time multi-timeseries.
 
+Models presented in this packages are using an adaptive distance attention mechanism.
+The weight of the attention are based either on the Ordinary Kriging equation system or the Nadaraya-Watson Kernel.
 
-## install
+## Install from PyPi
+```bash
+pip install steams
+```
+
+
+## install from source
 ```bash
 cd /tmp
 git clone https://git.nilu.no/aqdl/steams_pkg.git

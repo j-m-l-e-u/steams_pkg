@@ -1,0 +1,21 @@
+[project]
+name = "steams"
+version = "0.16"
+authors = [
+  { name="Jean-Marie Lepioufle", email="jm@jeanmarie.eu" },
+]
+description = "Space-time prediction with sparse and irregular space-time multi-timeserie."
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text='MIT + Copyright NILU'}
+classifiers = [
+    "Programming Language :: Python :: 3"
+]
+dependencies = [
+  "pandas~=1.2.5",
+  "torch~=1.11",
+  "numpy~=1.23.3"
+]
+
+[project.urls]
+"Homepage" = "https://git.nilu.no/aqdl/steams_pkg"

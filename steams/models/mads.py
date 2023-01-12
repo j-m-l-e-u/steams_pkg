@@ -1,11 +1,29 @@
 import torch
 
+
 ########
 ######## Multi-dimension Attention with Distance as Score (MADS)
 ########
 class mads(torch.nn.Module):
-
     def __init__(self,device,type,kernel,input_k):
+        '''
+        mads is an adaptive distance attention model. It is either based on the kriging equation system or the Nadaray-Watson kernel.
+        It assumes both network X and Y observing the same phenomenon.
+        No deep learning is involved in this model
+
+        Args:
+            device:
+            Determined with torch.device()
+
+            type:
+            Determines either the krigin sytem or the Nadaraya-Watson Kernel: 'krig' or 'nwd'.
+
+            kernel:
+            Deternines either Gaussian kernel or Exponential; 'gauss', 'exp'.
+
+            input_k:
+            Number of keys as input.
+        '''
         super(mads, self).__init__()
 
         if type == "krig":
@@ -34,8 +52,28 @@ class mads(torch.nn.Module):
             return res
 
 class mads2(torch.nn.Module):
-
     def __init__(self,device,type,kernel,input_k,input_v):
+        '''
+        mads2 is an adaptive distance attention model. It is either based on the kriging equation system or the Nadaray-Watson kernel.
+        It assumes both network X and Y observing the same phenomenon. In addition, a multiplicative parameter is used to predict the output.
+        No deep learning is involved in this model
+
+        Args:
+            device:
+            Determined with torch.device()
+
+            type:
+            Determines either the krigin sytem or the Nadaraya-Watson Kernel: 'krig' or 'nwd'.
+
+            kernel:
+            Deternines either Gaussian kernel or Exponential; 'gauss', 'exp'.
+
+            input_k:
+            Number of keys as input.
+
+            input_v
+            Number of values as input.
+        '''
         super(mads2, self).__init__()
 
         if type == "krig":
@@ -68,8 +106,31 @@ class mads2(torch.nn.Module):
             return res
 
 class mads3(torch.nn.Module):
-
     def __init__(self,device,type,kernel,input_k,input_q,input_v):
+    '''
+    mads3 is an adaptive distance attention model. It is either based on the kriging equation system or the Nadaray-Watson kernel.
+    Network X and network Y observes two different phenomena. In addition, a multiplicative parameter is used to predict the output.
+    No deep learning is involved in this model
+
+    Args:
+        device:
+        Determined with torch.device()
+
+        type:
+        Determines either the krigin sytem or the Nadaraya-Watson Kernel: 'krig' or 'nwd'.
+
+        kernel:
+        Deternines either Gaussian kernel or Exponential; 'gauss', 'exp'.
+
+        input_k:
+        Number of keys as input.
+
+        input_q:
+        Number of queries as input.
+
+        input_v
+        Number of values as input.
+    '''
         super(mads3, self).__init__()
 
         if type == "krig":
@@ -103,8 +164,31 @@ class mads3(torch.nn.Module):
             return res
 
 class madsnn(torch.nn.Module):
-
     def __init__(self,device,type,kernel,input_k, hidden_size,dropout=0.1):
+        '''
+        madsnn is an adaptive distance attention model. It is either based on the kriging equation system or the Nadaray-Watson kernel.
+        It assumes both network X and Y observing the same phenomenon.
+        Multilayer perceptrons are involved into the learnable parameters.
+
+        Args:
+            device:
+            Determined with torch.device()
+
+            type:
+            Determines either the krigin sytem or the Nadaraya-Watson Kernel: 'krig' or 'nwd'.
+
+            kernel:
+            Deternines either Gaussian kernel or Exponential; 'gauss', 'exp'.
+
+            input_k:
+            Number of keys as input.
+
+            hidden_size:
+            Number of hidden layers.
+
+            dropout:
+            Probability for the dropout; By default, dropout = 0.1.
+        '''
         super(madsnn, self).__init__()
 
         if type == "krig":
@@ -143,8 +227,37 @@ class madsnn(torch.nn.Module):
             return res
 
 class madsnn2(torch.nn.Module):
-
     def __init__(self,device,type,kernel,input_k, input_q, input_v, hidden_size,dropout=0.1):
+        '''
+        madsnn2 is an adaptive distance attention model. It is either based on the kriging equation system or the Nadaray-Watson kernel.
+        It assumes both network X and Y observing the same phenomenon. In addition, a multiplicative parameter is used to predict the output.
+        Multilayer perceptrons are involved into the learnable parameters.
+
+        Args:
+            device:
+            Determined with torch.device()
+
+            type:
+            Determines either the krigin sytem or the Nadaraya-Watson Kernel: 'krig' or 'nwd'.
+
+            kernel:
+            Deternines either Gaussian kernel or Exponential; 'gauss', 'exp'.
+
+            input_k:
+            Number of keys as input.
+
+            input_q:
+            Number of queries as input.
+
+            input_v:
+            Number of values as input.
+
+            hidden_size:
+            Number of hidden layers.
+
+            dropout:
+            Probability for the dropout; By default, dropout = 0.1.
+        '''
         super(madsnn2, self).__init__()
 
         if type == "krig":
@@ -193,8 +306,37 @@ class madsnn2(torch.nn.Module):
             return res
 
 class madsnn3(torch.nn.Module):
-
     def __init__(self,device,type,kernel,input_k,input_q, input_v, hidden_size,dropout=0.1):
+        '''
+        madsnn3 is an adaptive distance attention model. It is either based on the kriging equation system or the Nadaray-Watson kernel.
+        Network X and network Y observes two different phenomena. In addition, a multiplicative parameter is used to predict the output.
+        Multilayer perceptrons are involved into the learnable parameters.
+
+        Args:
+            device:
+            Determined with torch.device()
+
+            type:
+            Determines either the krigin sytem or the Nadaraya-Watson Kernel: 'krig' or 'nwd'.
+
+            kernel:
+            Deternines either Gaussian kernel or Exponential; 'gauss', 'exp'.
+
+            input_k:
+            Number of keys as input.
+
+            input_q:
+            Number of queries as input.
+
+            input_v:
+            Number of values as input.
+
+            hidden_size:
+            Number of hidden layers.
+
+            dropout:
+            Probability for the dropout; By default, dropout = 0.1.
+        '''
         super(madsnn3, self).__init__()
 
         if type == "krig":
@@ -254,10 +396,26 @@ class madsnn3(torch.nn.Module):
 ################
 class class_krig():
     def __init__(self,device,kernel="exp"):
+        '''
+        class_krig is an adaptive distance attention model based on the kriging equation system.
+        Is solves the Ordinary Kriging equation system. It thus assume the mean and the variance constant and unknown.
+
+        Args:
+            device:
+            Determined with torch.device()
+
+            kernel:
+            Deternines either Gaussian kernel or Exponential; 'gauss', 'exp'.
+        '''
         self.device = device
         self.kernel = kernel
 
     def variog(self,dist):
+        '''
+        Processes the variogram with a scaled distance tensor. The variogram model is determined by the kernel parameter.
+        Args:
+            dist: 3-dimension tensor.
+        '''
         if self.kernel == "exp":
             res = torch.tensor((), dtype=torch.float64).to(self.device)
             res = res.new_ones((dist.shape[0],dist.shape[1],dist.shape[2])) - torch.exp(-dist)
@@ -274,11 +432,13 @@ class class_krig():
 
     def gamma_ij(self,KEY):
         '''
-        gamma_ij
-        KEY: coordinates (x,y,...) of dim (nbatch,nbpoints,n coords)
+        Processes the matrix variogram in-between each pair of keys.
+
+        Args:
+            KEY: tensor key of dimension (nbatch,nbpoints,input_k)
         '''
 
-        # Euclidian scaled distance matrix between points [x,y]_i, i:1->n and points [x,y]_star
+        # Euclidian scaled distance matrix between points [x,y]_i, i:1->n and points [x,y]_j, j:1->n
         dist = torch.cdist(KEY,KEY, p=2)
 
         # variogram of variance equal to 1
@@ -304,12 +464,15 @@ class class_krig():
 
     def gamma_jstar(self,KEY,QUERY):
         '''
-        gamma_jstar
-        KEY: coordinates (x,y,...) of dim (nbatch,nbpoints,n coords)
-        QUERY: coordinates (x,y,...) of dim (nbatch,nbpoints,n coords)
+        Processes the matrix variogram in-between each pair of keys and queries.
+
+        Args:
+            KEY: tensor key of dimension (nbatch,nbpoints,input_k)
+
+            QUERY: tensor query of dimension (nbatch,nbpoints,input_q)
         '''
 
-        # Euclidian scaled distance matrix between points [x,y]_i, i:1->n and points [x,y]_star
+        # Euclidian scaled distance matrix between points [x,y]_i, i:1->n and points [x,y]_k, k:1->m
         dist = torch.cdist(KEY,QUERY, p=2)
 
         # variogram of variance equal to 1
@@ -325,9 +488,12 @@ class class_krig():
 
     def attention(self,KEY,QUERY):
         '''
-        KEY: coordinates (x,y,...) of dim (nbatch,nbpoints,n coords)
-        QUERY: coordinates (x,y,...) of dim (nbatch,nbpoints,n coords)
-        Solving this optimization problem g_ij^-1 . g_jstar (w/ Lagrange multipliers) results in the kriging system
+        Solving the Ordinary Kriging equation system with the least square method.
+
+        Args:
+            KEY: tensor key of dimension (nbatch,nbpoints,input_k)
+
+            QUERY: tensor query of dimension (nbatch,nbpoints,input_q)
         '''
 
         g_ij = self.gamma_ij(KEY)
@@ -341,6 +507,16 @@ class class_krig():
         return(res)
 
     def pred(self,KEY,VALUE,QUERY):
+        '''
+        Prediction using the weight of Ordinary Kriging equation.
+
+        Args:
+            KEY: tensor key of dimension (nbatch,nbpoints,input_k)
+
+            VALUE: tensor value of dimension (nbatch,nbpoints,input_v)
+
+            QUERY: tensor query of dimension (nbatch,nbpoints,input_q)
+        '''
         self.weights = self.attention(KEY,QUERY)[:,range(KEY.shape[1])]
         res = torch.einsum('bij,bik->bjk',self.weights,VALUE)
         return(res)
@@ -350,6 +526,16 @@ class class_krig():
 ############################################
 class class_nwd():
     def __init__(self,device,kernel="gauss"):
+        '''
+        class_nwd is an adaptive distance attention model based on the Nadaray-Watson kernel.
+
+        Args:
+            device:
+            Determined with torch.device()
+
+            kernel:
+            Deternines either Gaussian kernel or Exponential; 'gauss', 'exp'.
+        '''
         self.device = device
         self.kernel = kernel
 
@@ -362,9 +548,14 @@ class class_nwd():
 
     def attention(self,KEY,QUERY):
         '''
-        KEY: coordinates (x,y,...) of dim (nbatch,nbpoints,n coords)
-        QUERY: coordinates (x,y,...) of dim (nbatch,nbpoints,n coords)
+        Provides the attention using the softmax function.
+
+        Args:
+            KEY: tensor key of dimension (nbatch,nbpoints,input_k)
+
+            QUERY: tensor query of dimension (nbatch,nbpoints,input_q)
         '''
+
         # dist
         dist = torch.cdist(KEY,QUERY, p=2) # here, p=2
 
@@ -373,6 +564,16 @@ class class_nwd():
         return(res)
 
     def pred(self,KEY,VALUE,QUERY):
+        '''
+        Prediction.
+
+        Args:
+            KEY: tensor key of dimension (nbatch,nbpoints,input_k)
+
+            VALUE: tensor value of dimension (nbatch,nbpoints,input_v)
+
+            QUERY: tensor query of dimension (nbatch,nbpoints,input_q)
+        '''
 
         # attention
         self.weights = self.attention(KEY,QUERY)[:,range(KEY.shape[1])]
@@ -386,22 +587,43 @@ class class_nwd():
 ######## Scaled-dot-prod attention
 ########
 class NWnnSDP(torch.nn.Module):
-    """
-    Score is based on scaled dot product of scaled coordinates.
-    Weights scale the coordinates and are similar to non-uniform ranges for the variogram.
-    We assume VALUE_X and VALUE_Y belonging to one identic process.
-    So the scaling of KEY and QUERY is applied with one identical weight `W`.
-    Attention follows NW kernel with Gaussian Kernel.
-    """
-    def __init__(self, input_size,input_v, input_t, hidden_size,dropout=0.1):
+    def __init__(self, input_k,input_v, hidden_size,dropout=0.1):
+        '''
+        NWnnSDP is an adaptive distance attention model. It is based on the dot product between the key and query tensors.
+        It assumes network X and network Y observing a identical phenomenon. In addition, a multiplicative parameter is used to predict the output.
+        Multilayer perceptrons are involved into the learnable parameters.
+
+        Args:
+            device:
+            Determined with torch.device()
+
+            type:
+            Determines either the krigin sytem or the Nadaraya-Watson Kernel: 'krig' or 'nwd'.
+
+            kernel:
+            Deternines either Gaussian kernel or Exponential; 'gauss', 'exp'.
+
+            input_k:
+            Number of keys as input.
+
+            input_v:
+            Number of values as input.
+
+            hidden_size:
+            Number of hidden layers.
+
+            dropout:
+            Probability for the dropout; By default, dropout = 0.1.
+        '''
+
         super(NWnnSDP, self).__init__()
 
         self.W = torch.nn.Sequential(
-            torch.nn.Linear(input_size, hidden_size),
+            torch.nn.Linear(input_k, hidden_size),
             torch.nn.ReLU(),
             torch.nn.Linear(hidden_size, hidden_size),
             torch.nn.ReLU(),
-            torch.nn.Linear(hidden_size, input_size))
+            torch.nn.Linear(hidden_size, input_k))
 
         self.Wv = torch.nn.Sequential(
             torch.nn.Linear(input_v, hidden_size),
@@ -411,7 +633,7 @@ class NWnnSDP(torch.nn.Module):
             torch.nn.Linear(hidden_size, hidden_size))
 
         # W_ouput
-        self.Wo = torch.nn.Linear(hidden_size,input_t)
+        self.Wo = torch.nn.Linear(hidden_size,input_v)
 
         self.dropout = torch.nn.Dropout(dropout)
 
@@ -446,7 +668,37 @@ class NWnnSDP(torch.nn.Module):
 
 
 class NWnnSDP2(torch.nn.Module):
-    def __init__(self,input_k, input_q, input_v, input_t, hidden_size, dropout=0.1):
+    def __init__(self,input_k, input_q, input_v, hidden_size, dropout=0.1):
+        '''
+        NWnnSDP2 is an adaptive distance attention model. It is based on the dot product between the key and query tensors.
+        Network X and network Y observes two different phenomena. In addition, a multiplicative parameter is used to predict the output.
+        Multilayer perceptrons are involved into the learnable parameters.
+
+        Args:
+            device:
+            Determined with torch.device()
+
+            type:
+            Determines either the krigin sytem or the Nadaraya-Watson Kernel: 'krig' or 'nwd'.
+
+            kernel:
+            Deternines either Gaussian kernel or Exponential; 'gauss', 'exp'.
+
+            input_k:
+            Number of keys as input.
+
+            input_q:
+            Number of queries as input.
+
+            input_v:
+            Number of values as input.
+
+            hidden_size:
+            Number of hidden layers.
+
+            dropout:
+            Probability for the dropout; By default, dropout = 0.1.
+        '''
         super(NWnnSDP2, self).__init__()
 
         # W_keys as an MLP
@@ -477,7 +729,7 @@ class NWnnSDP2(torch.nn.Module):
             )
 
         # W_ouput
-        self.Wo = torch.nn.Linear(hidden_size,input_t)
+        self.Wo = torch.nn.Linear(hidden_size,input_v)
 
         self.dropout = torch.nn.Dropout(dropout)
 
@@ -514,18 +766,45 @@ class NWnnSDP2(torch.nn.Module):
 ###### additive attention
 ######
 class NWnnAdd(torch.nn.Module):
-    def __init__(self, input_size,input_v, hidden_size,dropout=0.1):
+    def __init__(self, input_k, input_v, hidden_size,dropout=0.1):
+        '''
+        NWnnAdd is an adaptive distance attention model. It is based on additive attention between the key and query tensors.
+        It assumes network X and network Y observing an identical phenomenon. In addition, a multiplicative parameter is used to predict the output.
+        Multilayer perceptrons are involved into the learnable parameters.
+
+        Args:
+            device:
+            Determined with torch.device()
+
+            type:
+            Determines either the krigin sytem or the Nadaraya-Watson Kernel: 'krig' or 'nwd'.
+
+            kernel:
+            Deternines either Gaussian kernel or Exponential; 'gauss', 'exp'.
+
+            input_k:
+            Number of keys as input.
+
+            input_v:
+            Number of values as input.
+
+            hidden_size:
+            Number of hidden layers.
+
+            dropout:
+            Probability for the dropout; By default, dropout = 0.1.
+        '''
         super(NWnnAdd, self).__init__()
 
         self.W = torch.nn.Sequential(
-            torch.nn.Linear(input_size, hidden_size),
+            torch.nn.Linear(input_k, hidden_size),
             torch.nn.ReLU(),
             torch.nn.Linear(hidden_size, hidden_size),
             torch.nn.ReLU(),
-            torch.nn.Linear(hidden_size, input_size))
+            torch.nn.Linear(hidden_size, input_k))
 
         self.Ws = torch.nn.Sequential(
-           torch.nn.Linear(input_size, hidden_size),
+           torch.nn.Linear(input_k, hidden_size),
            torch.nn.ReLU(),
            torch.nn.Linear(hidden_size, hidden_size),
            torch.nn.ReLU(),

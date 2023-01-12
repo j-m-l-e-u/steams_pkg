@@ -5,19 +5,40 @@ import numpy as np
 import os
 
 def train(obj,train_class_data,valid_class_data,niter,n_iter_stop,batch_size, shuffle=False,num_workers=0,pin_memory=False,resdir=None):
-    """
+    '''
+    The function train the model architecture. Metrics are processed on scaled values.
+
     Args:
-        obj: steams object
-        train_class_data
-        valid_class_data
-        niter
-        n_iter_stop
-        batch_size=batch_size
-        shuffle=False
-        num_workers=0
-        pin_memory=False
-        resdir
-    """
+        obj:
+        steams object that embeds the model architecture, the optimizer and its criterion, and the scheduler (if any).
+
+        train_class_data:
+        Data loader related to the data sampler for the training phase.
+
+        valid_class_data:
+        Data loader related to the data sampler for the validation phase.
+
+        niter:
+        Number of iteration of single training, i.e number of epoch.
+
+        n_iter_stop:
+        Number of epoch that determine of an early exit if no loss improvement occurs with the validation dataset.
+
+        batch_size:
+        Size of the batch
+
+        shuffle:
+        Boolean to decide whether or not to shuffle the batch, 'False' by default.
+
+        num_workers:
+        Number of workers; '0' by default.
+
+        pin_memory:
+        Pin memory, 'False' by default
+
+        resdir:
+        Path of the directory for any results to be saved, 'None' by default.
+    '''
 
     train_class_data.scale(True)
     valid_class_data.scale(True)
@@ -66,16 +87,31 @@ def train(obj,train_class_data,valid_class_data,niter,n_iter_stop,batch_size, sh
 
 
 def evaluation(obj,valid_class_data,batch_size, shuffle=False,num_workers=0,pin_memory=False,resdir=None):
-    """
+    '''
+    The function evaluate the model architecture. Metrics are processed on unscaled values.
+
     Args:
-        obj: steams object
-        valid_class_data
-        batch_size
-        shuffle=False
-        num_workers=0
-        pin_memory=False
-        resdir
-    """
+        obj:
+        steams object that embeds the model architecture, the optimizer and its criterion, and the scheduler (if any).
+
+        valid_class_data:
+        Data loader related to the data sampler for the validation phase.
+
+        batch_size:
+        Size of the batch
+
+        shuffle:
+        Boolean to decide whether or not to shuffle the batch, 'False' by default.
+
+        num_workers:
+        Number of workers; '0' by default.
+
+        pin_memory:
+        Pin memory, 'False' by default
+
+        resdir:
+        Path of the directory for any results to be saved, 'None' by default.
+    '''
 
     valid_class_data.scale(True)
 
@@ -91,12 +127,19 @@ def evaluation(obj,valid_class_data,batch_size, shuffle=False,num_workers=0,pin_
         print(eval_tmp)
 
 def prediction_prime(obj,class_data,resdir=None):
-    """
+    '''
+    The function infer the model architecture and concatenate the results with observations.
+
     Args:
-        obj: steams object
-        class_data
-        resdir
-    """
+        obj:
+        steams object that embeds the model architecture, the optimizer and its criterion, and the scheduler (if any).
+
+        class_data:
+        KVyQVx data sampler used to extract scale parameters.
+
+        resdir:
+        Path of the directory for any results to be saved, 'None' by default.
+    '''
 
     class_data.scale(True)
 
@@ -127,12 +170,25 @@ def prediction_prime(obj,class_data,resdir=None):
         return results
 
 def ensemble_prime(obj,class_data,N,q=[0.05, 0.5, 0.95],resdir=None):
-    """
+    '''
+    The function creates an ensemble of predictions, and provides values related to a percentile of the member, and the p-value of each observation within the members.
+
     Args:
-        obj: steams object
-        class_data
-        resdir
-    """
+        obj:
+        steams object that embeds the model architecture, the optimizer and its criterion, and the scheduler (if any).
+
+        class_data:
+        KVyQVx data sampler used to extract scale parameters.
+
+        N:
+        Number of times to repeat the inference.
+
+        q:
+        List of percentiles; by default the 5-percentile, 50-percentile and 95-percentile.
+
+        resdir:
+        Path of the directory for any results to be saved, 'None' by default.
+    '''
 
     pred_name = ['pred_' + v for v in class_data.VALUE_X]
     results = pd.DataFrame(columns=class_data.QUERY+class_data.VALUE_X+pred_name)

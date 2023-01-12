@@ -3,6 +3,9 @@ import torch
 
 class RMSE(torch.nn.Module):
     def __init__(self):
+        '''
+        Root Mean Square Error
+        '''
         super().__init__()
         self.mse = torch.nn.MSELoss()
 
@@ -12,11 +15,17 @@ class RMSE(torch.nn.Module):
 
 class MAPE(torch.nn.Module):
     def __init__(self):
+        '''
+        Mean Absolute Percentage Error
+        '''
         super().__init__()
     def forward(self, target: torch.Tensor, y_pred: torch.Tensor):
         return torch.mean(torch.abs((target - y_pred) / target))
 
 class bias(torch.nn.Module):
+    '''
+    Bias
+    '''
     def __init__(self):
         super().__init__()
     def forward(self, target: torch.Tensor, y_pred: torch.Tensor):
@@ -24,6 +33,9 @@ class bias(torch.nn.Module):
         return bias
 
 class variance(torch.nn.Module):
+    '''
+    Variance
+    '''
     def __init__(self):
         super().__init__()
     def forward(self, target: torch.Tensor, y_pred: torch.Tensor):
@@ -33,6 +45,9 @@ class variance(torch.nn.Module):
 
 # adapted from https://pytorch-widedeep.readthedocs.io/en/latest/_modules/pytorch_widedeep/metrics.html#R2Score
 class R2(torch.nn.Module):
+    '''
+    Coefficient of determination
+    '''
     def __init__(self):
         super().__init__()
         self.numerator = 0

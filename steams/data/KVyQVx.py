@@ -9,6 +9,20 @@ from steams.utils.scale import param_scale,standard_scaler
 
 class KVyQVx():
     def __init__(self, params: dict,subset_indice=None ):
+        '''
+        KVyQVx is a class used as data sampler.
+        It samples keys, values related to these keys, queries, and values related to these queries from csv files.
+        Input csv files describes sparse space-time values with a constant number of point for each time step (E.g. 10 stations for 5 time steps).
+
+        Args:
+            params:
+            Dictionary providing information about network X and network Y.
+            Information related to Y are: the path of file 'dataset.csv', the name of the columns used as Key, the number of locations in the network, the history length, the number pair {K,Vy} to sample.
+            Information related to X are: the path of file 'dataset.csv', the name of the columns used as Query, the number of locations in the network, the gap length, the horizon length, the number pair {Q,Vx} to sample.
+
+            subset_indice:
+            A sequence of integer that describes the sub-sample of the csv file to use.
+        '''
 
         self.TO_SCALE = False
 
@@ -133,6 +147,9 @@ class KVyQVx():
         return KEY_data, VALUE_Y_data, QUERY_data, VALUE_X_data
 
     def get_rand_input(self):
+        '''
+        Function used when converting the model into ONNX format
+        '''
 
         #############
         # target: X #
@@ -183,9 +200,20 @@ class KVyQVx():
         return len(self.indice_X) - self.nb_location_X*(self.history_length_Y + self.gap_length_X + self.horizon_length_X)
 
     def scale(self,SCALE:bool):
+        '''
+        Determines whether to scale or not the sampled data. By default the data sample does not scale anything.
+        Args:
+            SCALE: Boolean chosen either 'True' to scale or 'False' to not scale.
+        '''
         self.TO_SCALE = SCALE
 
     def unscale(self, newdata=None, datatype = None):
+        '''
+        Unscales a dataset using sclae parameters
+        Args:
+            newdata: the dataset to unscale
+            datatype: type of the dataset to uncsale; either 'KEY','VALUE_Y','QUERY' or 'VALUE_X'.
+        '''
         if isinstance(newdata, torch.Tensor):
             tmp = newdata.cpu().numpy()
         elif isinstance(newdata, pd.Series) or isinstance(newdata, pd.DataFrame):
