@@ -14,7 +14,7 @@ if os.path.isfile(requirementPath):
 
 setup(
     name='steams',
-    version='0.16',
+    version='0.17',
     author="Jean-Marie Lepioufle",
     author_email="jm@jeanmarie.eu",
     packages=[

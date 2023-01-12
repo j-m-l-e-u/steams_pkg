@@ -107,30 +107,30 @@ class mads2(torch.nn.Module):
 
 class mads3(torch.nn.Module):
     def __init__(self,device,type,kernel,input_k,input_q,input_v):
-    '''
-    mads3 is an adaptive distance attention model. It is either based on the kriging equation system or the Nadaray-Watson kernel.
-    Network X and network Y observes two different phenomena. In addition, a multiplicative parameter is used to predict the output.
-    No deep learning is involved in this model
+        '''
+        mads3 is an adaptive distance attention model. It is either based on the kriging equation system or the Nadaray-Watson kernel.
+        Network X and network Y observes two different phenomena. In addition, a multiplicative parameter is used to predict the output.
+        No deep learning is involved in this model
 
-    Args:
-        device:
-        Determined with torch.device()
+        Args:
+            device:
+            Determined with torch.device()
 
-        type:
-        Determines either the krigin sytem or the Nadaraya-Watson Kernel: 'krig' or 'nwd'.
+            type:
+            Determines either the krigin sytem or the Nadaraya-Watson Kernel: 'krig' or 'nwd'.
 
-        kernel:
-        Deternines either Gaussian kernel or Exponential; 'gauss', 'exp'.
+            kernel:
+            Deternines either Gaussian kernel or Exponential; 'gauss', 'exp'.
 
-        input_k:
-        Number of keys as input.
+            input_k:
+            Number of keys as input.
 
-        input_q:
-        Number of queries as input.
+            input_q:
+            Number of queries as input.
 
-        input_v
-        Number of values as input.
-    '''
+            input_v
+            Number of values as input.
+        '''
         super(mads3, self).__init__()
 
         if type == "krig":
