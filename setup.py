@@ -14,7 +14,7 @@ if os.path.isfile(requirementPath):
 
 setup(
     name='steams',
-    version='0.17',
+    version='0.19',
     author="Jean-Marie Lepioufle",
     author_email="jm@jeanmarie.eu",
     packages=[
@@ -23,10 +23,10 @@ setup(
         "steams.models",
         "steams.tepe",
         "steams.utils"],
-    license='MIT + Copyright NILU',
+    license='MIT + Copyright Jean-Marie Lepioufle',
     description='Space-time prediction with sparse and irregular space-time multi-timeserie.',
     long_description = long_description,
-    url="https://git.nilu.no/aqdl/steams_pkg",
+    url="https://github.com/j-m-l-e-u/steams_pkg",
     python_requires='>=3.8',
     install_requires=install_requires,
     extras_require={
