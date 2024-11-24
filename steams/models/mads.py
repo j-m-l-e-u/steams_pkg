@@ -1,10 +1,11 @@
 import torch
+from torch import nn
 import math
 
 ########
 ######## Multi-dimension Attention with Distance as Score (MADS)
 ########
-class mads(torch.nn.Module):
+class mads(nn.Module):
     def __init__(self,device,type,kernel,input_k):
         '''
         mads is an adaptive distance attention model. It is either based on the kriging equation system or the Nadaray-Watson kernel.
@@ -51,7 +52,7 @@ class mads(torch.nn.Module):
         else:
             return res
 
-class mads2(torch.nn.Module):
+class mads2(nn.Module):
     def __init__(self,device,type,kernel,input_k,input_v):
         '''
         mads2 is an adaptive distance attention model. It is either based on the kriging equation system or the Nadaray-Watson kernel.
@@ -105,7 +106,7 @@ class mads2(torch.nn.Module):
         else:
             return res
 
-class mads3(torch.nn.Module):
+class mads3(nn.Module):
     def __init__(self,device,type,kernel,input_k,input_q,input_v):
         '''
         mads3 is an adaptive distance attention model. It is either based on the kriging equation system or the Nadaray-Watson kernel.
@@ -163,7 +164,7 @@ class mads3(torch.nn.Module):
         else:
             return res
 
-class madsnn(torch.nn.Module):
+class madsnn(nn.Module):
     def __init__(self,device,type,kernel,input_k, hidden_size,dropout=0.1):
         '''
         madsnn is an adaptive distance attention model. It is either based on the kriging equation system or the Nadaray-Watson kernel.
@@ -198,14 +199,14 @@ class madsnn(torch.nn.Module):
         else:
              raise ValueError("Attention type not recognized")
 
-        self.W = torch.nn.Sequential(
-            torch.nn.Linear(input_k, hidden_size),
-            torch.nn.ReLU(),
-            torch.nn.Linear(hidden_size, hidden_size),
-            torch.nn.ReLU(),
-            torch.nn.Linear(hidden_size, input_k))
+        self.W = nn.Sequential(
+            nn.Linear(input_k, hidden_size),
+            nn.ReLU(),
+            nn.Linear(hidden_size, hidden_size),
+            nn.ReLU(),
+            nn.Linear(hidden_size, input_k))
 
-        self.dropout = torch.nn.Dropout(dropout)
+        self.dropout = nn.Dropout(dropout)
 
     def forward(self,KEY,VALUE,QUERY,return_attention=False):
 
@@ -226,7 +227,7 @@ class madsnn(torch.nn.Module):
         else:
             return res
 
-class madsnn2(torch.nn.Module):
+class madsnn2(nn.Module):
     def __init__(self,device,type,kernel,input_k, input_q, input_v, hidden_size,dropout=0.1):
         '''
         madsnn2 is an adaptive distance attention model. It is either based on the kriging equation system or the Nadaray-Watson kernel.
@@ -267,21 +268,21 @@ class madsnn2(torch.nn.Module):
         else:
              raise ValueError("Attention type not recognized")
 
-        self.W = torch.nn.Sequential(
-            torch.nn.Linear(input_k, hidden_size),
-            torch.nn.ReLU(),
-            torch.nn.Linear(hidden_size, hidden_size),
-            torch.nn.ReLU(),
-            torch.nn.Linear(hidden_size, input_k))
+        self.W = nn.Sequential(
+            nn.Linear(input_k, hidden_size),
+            nn.ReLU(),
+            nn.Linear(hidden_size, hidden_size),
+            nn.ReLU(),
+            nn.Linear(hidden_size, input_k))
 
-        self.Wo = torch.nn.Sequential(
-            torch.nn.Linear(input_q, hidden_size), # <- input_q
-            torch.nn.ReLU(),
-            torch.nn.Linear(hidden_size, hidden_size),
-            torch.nn.ReLU(),
-            torch.nn.Linear(hidden_size, input_v))
+        self.Wo = nn.Sequential(
+            nn.Linear(input_q, hidden_size), # <- input_q
+            nn.ReLU(),
+            nn.Linear(hidden_size, hidden_size),
+            nn.ReLU(),
+            nn.Linear(hidden_size, input_v))
 
-        self.dropout = torch.nn.Dropout(dropout)
+        self.dropout = nn.Dropout(dropout)
 
     def forward(self,KEY,VALUE,QUERY,return_attention=False):
 
@@ -305,7 +306,7 @@ class madsnn2(torch.nn.Module):
         else:
             return res
 
-class madsnn3(torch.nn.Module):
+class madsnn3(nn.Module):
     def __init__(self,device,type,kernel,input_k,input_q, input_v, hidden_size,dropout=0.1):
         '''
         madsnn3 is an adaptive distance attention model. It is either based on the kriging equation system or the Nadaray-Watson kernel.
@@ -346,28 +347,28 @@ class madsnn3(torch.nn.Module):
         else:
              raise ValueError("Attention type not recognized")
 
-        self.Wk = torch.nn.Sequential(
-            torch.nn.Linear(input_k, hidden_size),
-            torch.nn.ReLU(),
-            torch.nn.Linear(hidden_size, hidden_size),
-            torch.nn.ReLU(),
-            torch.nn.Linear(hidden_size, input_k))
+        self.Wk = nn.Sequential(
+            nn.Linear(input_k, hidden_size),
+            nn.ReLU(),
+            nn.Linear(hidden_size, hidden_size),
+            nn.ReLU(),
+            nn.Linear(hidden_size, input_k))
 
-        self.Wq = torch.nn.Sequential(
-            torch.nn.Linear(input_q, hidden_size),
-            torch.nn.ReLU(),
-            torch.nn.Linear(hidden_size, hidden_size),
-            torch.nn.ReLU(),
-            torch.nn.Linear(hidden_size, input_q))
+        self.Wq = nn.Sequential(
+            nn.Linear(input_q, hidden_size),
+            nn.ReLU(),
+            nn.Linear(hidden_size, hidden_size),
+            nn.ReLU(),
+            nn.Linear(hidden_size, input_q))
 
-        self.Wo = torch.nn.Sequential(
-            torch.nn.Linear(input_q, hidden_size),
-            torch.nn.ReLU(),
-            torch.nn.Linear(hidden_size, hidden_size),
-            torch.nn.ReLU(),
-            torch.nn.Linear(hidden_size, input_v))
+        self.Wo = nn.Sequential(
+            nn.Linear(input_q, hidden_size),
+            nn.ReLU(),
+            nn.Linear(hidden_size, hidden_size),
+            nn.ReLU(),
+            nn.Linear(hidden_size, input_v))
 
-        self.dropout = torch.nn.Dropout(dropout)
+        self.dropout = nn.Dropout(dropout)
 
     def forward(self,KEY,VALUE,QUERY,return_attention=False):
 
@@ -559,7 +560,7 @@ class class_nwd():
         # dist
         dist = torch.cdist(KEY,QUERY, p=2) # here, p=2
 
-        res = torch.nn.functional.softmax(self.kern(dist), dim=1)
+        res = nn.functional.softmax(self.kern(dist), dim=1)
 
         return(res)
 
@@ -587,7 +588,7 @@ class class_nwd():
 ######## Scaled-dot-prod attention
 ########
 
-class dpnn3(torch.nn.Module):
+class dpnn3(nn.Module):
     def __init__(self,input_k, input_v, hidden_size, dropout=0.1):
         '''
         dpnn2 is an adaptive attention model using on the dot product between the key and query tensors.
@@ -619,27 +620,27 @@ class dpnn3(torch.nn.Module):
         super(dpnn3, self).__init__()
 
         # W as an MLP
-        self.W = torch.nn.Sequential(
-            torch.nn.Linear(input_k, hidden_size),
-            torch.nn.ReLU(),
-            torch.nn.Linear(hidden_size, hidden_size),
-            torch.nn.ReLU(),
-            torch.nn.Linear(hidden_size, input_k),
+        self.W = nn.Sequential(
+            nn.Linear(input_k, hidden_size),
+            nn.ReLU(),
+            nn.Linear(hidden_size, hidden_size),
+            nn.ReLU(),
+            nn.Linear(hidden_size, input_k),
             )
 
         # W_values as an MLP
-        self.Wv = torch.nn.Sequential(
-            torch.nn.Linear(input_v, hidden_size),
-            torch.nn.ReLU(),
-            torch.nn.Linear(hidden_size, hidden_size),
-            torch.nn.ReLU(),
-            torch.nn.Linear(hidden_size, hidden_size),
+        self.Wv = nn.Sequential(
+            nn.Linear(input_v, hidden_size),
+            nn.ReLU(),
+            nn.Linear(hidden_size, hidden_size),
+            nn.ReLU(),
+            nn.Linear(hidden_size, input_v),
             )
 
         # W_ouput
-        self.Wo = torch.nn.Linear(hidden_size,input_v)
+        # self.Wo = nn.Linear(hidden_size,input_v)
 
-        self.dropout = torch.nn.Dropout(dropout)
+        self.dropout = nn.Dropout(dropout)
 
     def forward(self,KEY,VALUE,QUERY,return_attention=False):
 
@@ -657,13 +658,14 @@ class dpnn3(torch.nn.Module):
         dist = torch.einsum('bij,bkj->bik',KEY_scale,QUERY_scale)/math.sqrt(d_wk)
 
         # attention
-        self.weights = torch.nn.functional.softmax(dist, dim=1)
+        self.weights = nn.functional.softmax(dist, dim=1)
 
         # context
         context = torch.einsum('bik,bij->bkj',self.weights,VALUE_scale)
         
         # output
-        res = self.dropout(self.Wo(context))
+        # res = self.dropout(self.Wo(context))
+        res = self.dropout(context)
 
         if return_attention:
             return res, self.weights
@@ -671,7 +673,7 @@ class dpnn3(torch.nn.Module):
             return res
 
 
-class dpnn4(torch.nn.Module):
+class dpnn4(nn.Module):
     def __init__(self,input_k, input_q, input_v, hidden_size, dropout=0.1):
         '''
         dpnn3 is an adaptive attention model using on the dot product between the key and query tensors.
@@ -706,36 +708,36 @@ class dpnn4(torch.nn.Module):
         super(dpnn4, self).__init__()
 
         # W_keys as an MLP
-        self.Wk = torch.nn.Sequential(
-            torch.nn.Linear(input_k, hidden_size),
-            torch.nn.ReLU(),
-            torch.nn.Linear(hidden_size, hidden_size),
-            torch.nn.ReLU(),
-            torch.nn.Linear(hidden_size, input_k),
+        self.Wk = nn.Sequential(
+            nn.Linear(input_k, hidden_size),
+            nn.ReLU(),
+            nn.Linear(hidden_size, hidden_size),
+            nn.ReLU(),
+            nn.Linear(hidden_size, input_k),
             )
 
         # W_queries as an MLP
-        self.Wq = torch.nn.Sequential(
-            torch.nn.Linear(input_q, hidden_size),
-            torch.nn.ReLU(),
-            torch.nn.Linear(hidden_size, hidden_size),
-            torch.nn.ReLU(),
-            torch.nn.Linear(hidden_size, input_q),
+        self.Wq = nn.Sequential(
+            nn.Linear(input_q, hidden_size),
+            nn.ReLU(),
+            nn.Linear(hidden_size, hidden_size),
+            nn.ReLU(),
+            nn.Linear(hidden_size, input_q),
             )
 
         # W_values as an MLP
-        self.Wv = torch.nn.Sequential(
-            torch.nn.Linear(input_v, hidden_size),
-            torch.nn.ReLU(),
-            torch.nn.Linear(hidden_size, hidden_size),
-            torch.nn.ReLU(),
-            torch.nn.Linear(hidden_size, hidden_size),
+        self.Wv = nn.Sequential(
+            nn.Linear(input_v, hidden_size),
+            nn.ReLU(),
+            nn.Linear(hidden_size, hidden_size),
+            nn.ReLU(),
+            nn.Linear(hidden_size, input_v),
             )
 
         # W_ouput
-        self.Wo = torch.nn.Linear(hidden_size,input_v)
+        # self.Wo = nn.Linear(hidden_size,input_v)
 
-        self.dropout = torch.nn.Dropout(dropout)
+        self.dropout = nn.Dropout(dropout)
 
     def forward(self,KEY,VALUE,QUERY,return_attention=False):
 
@@ -753,7 +755,7 @@ class dpnn4(torch.nn.Module):
         dist = torch.einsum('bij,bkj->bik',KEY_scale,QUERY_scale)/math.sqrt(d_wk)
 
         # attention
-        self.weights = torch.nn.functional.softmax(dist, dim=1)
+        self.weights = nn.functional.softmax(dist, dim=1)
 
         # context
         # context = torch.einsum('bik,bij->bjk',self.weights,VALUE_scale)
@@ -761,17 +763,20 @@ class dpnn4(torch.nn.Module):
         # context_scaled = torch.einsum('bij,bij->bij',context , Wo)
 
         # output
-        res = self.dropout(self.Wo(context))
+        # res = self.dropout(self.Wo(context))
+        res = self.dropout(context)
 
         if return_attention:
             return res, self.weights
         else:
             return res
 
+
+
 ######
 ###### additive attention
 ######
-class NWnnAdd(torch.nn.Module):
+class NWnnAdd(nn.Module):
     def __init__(self, input_k, input_v, hidden_size,dropout=0.1):
         '''
         NWnnAdd is an adaptive distance attention model. It is based on additive attention between the key and query tensors.
@@ -802,21 +807,21 @@ class NWnnAdd(torch.nn.Module):
         '''
         super(NWnnAdd, self).__init__()
 
-        self.W = torch.nn.Sequential(
-            torch.nn.Linear(input_k, hidden_size),
-            torch.nn.ReLU(),
-            torch.nn.Linear(hidden_size, hidden_size),
-            torch.nn.ReLU(),
-            torch.nn.Linear(hidden_size, input_k))
+        self.W = nn.Sequential(
+            nn.Linear(input_k, hidden_size),
+            nn.ReLU(),
+            nn.Linear(hidden_size, hidden_size),
+            nn.ReLU(),
+            nn.Linear(hidden_size, input_k))
 
-        self.Ws = torch.nn.Sequential(
-           torch.nn.Linear(input_k, hidden_size),
-           torch.nn.ReLU(),
-           torch.nn.Linear(hidden_size, hidden_size),
-           torch.nn.ReLU(),
-           torch.nn.Linear(hidden_size, input_v))
+        self.Ws = nn.Sequential(
+           nn.Linear(input_k, hidden_size),
+           nn.ReLU(),
+           nn.Linear(hidden_size, hidden_size),
+           nn.ReLU(),
+           nn.Linear(hidden_size, input_v))
 
-        self.dropout = torch.nn.Dropout(dropout)
+        self.dropout = nn.Dropout(dropout)
 
     def forward(self, KEY,VALUE,QUERY,return_attention=False):
 
@@ -826,7 +831,7 @@ class NWnnAdd(torch.nn.Module):
         # dist
         dist = self.Ws(torch.tanh(Wk+Wq))
 
-        self.weights = torch.nn.functional.softmax(-torch.pow(dist,2) / 2, dim=1)
+        self.weights = nn.functional.softmax(-torch.pow(dist,2) / 2, dim=1)
 
         # context
         context = torch.einsum('bij,bij->bij',self.weights,VALUE)
