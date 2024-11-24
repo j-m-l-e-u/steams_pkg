@@ -1,5 +1,5 @@
 import torch
-
+import math
 
 ########
 ######## Multi-dimension Attention with Distance as Score (MADS)
@@ -586,11 +586,12 @@ class class_nwd():
 ########
 ######## Scaled-dot-prod attention
 ########
-class NWnnSDP(torch.nn.Module):
-    def __init__(self, input_k,input_v, hidden_size,dropout=0.1):
+
+class dpnn3(torch.nn.Module):
+    def __init__(self,input_k, input_v, hidden_size, dropout=0.1):
         '''
-        NWnnSDP is an adaptive distance attention model. It is based on the dot product between the key and query tensors.
-        It assumes network X and network Y observing a identical phenomenon. In addition, a multiplicative parameter is used to predict the output.
+        dpnn2 is an adaptive attention model using on the dot product between the key and query tensors.
+        Network X and network Y observes two different phenomena. In addition, a multiplicative parameter is used to predict the output.
         Multilayer perceptrons are involved into the learnable parameters.
 
         Args:
@@ -615,29 +616,32 @@ class NWnnSDP(torch.nn.Module):
             dropout:
             Probability for the dropout; By default, dropout = 0.1.
         '''
+        super(dpnn3, self).__init__()
 
-        super(NWnnSDP, self).__init__()
-
+        # W as an MLP
         self.W = torch.nn.Sequential(
             torch.nn.Linear(input_k, hidden_size),
             torch.nn.ReLU(),
             torch.nn.Linear(hidden_size, hidden_size),
             torch.nn.ReLU(),
-            torch.nn.Linear(hidden_size, input_k))
+            torch.nn.Linear(hidden_size, input_k),
+            )
 
+        # W_values as an MLP
         self.Wv = torch.nn.Sequential(
             torch.nn.Linear(input_v, hidden_size),
             torch.nn.ReLU(),
             torch.nn.Linear(hidden_size, hidden_size),
             torch.nn.ReLU(),
-            torch.nn.Linear(hidden_size, hidden_size))
+            torch.nn.Linear(hidden_size, hidden_size),
+            )
 
         # W_ouput
         self.Wo = torch.nn.Linear(hidden_size,input_v)
 
         self.dropout = torch.nn.Dropout(dropout)
 
-    def forward(self, KEY,VALUE,QUERY,return_attention=False):
+    def forward(self,KEY,VALUE,QUERY,return_attention=False):
 
         Wk = self.W(KEY)
         Wq = self.W(QUERY)
@@ -648,16 +652,16 @@ class NWnnSDP(torch.nn.Module):
         QUERY_scale = torch.einsum('bij,bij->bij',QUERY , Wq)
         VALUE_scale = torch.einsum('bij,bij->bij',VALUE , Wv)
 
-        # dist: dot prod between Wk and Wq
-        d_wk = KEY_scale.shape[-1]
+        # dist: dot prod between KEY_scale and QUERY_scale
+        d_wk = Wq.shape[-1]
         dist = torch.einsum('bij,bkj->bik',KEY_scale,QUERY_scale)/math.sqrt(d_wk)
 
         # attention
-        self.weights = torch.nn.functional.softmax(-torch.pow(dist,2) / 2, dim=1)
+        self.weights = torch.nn.functional.softmax(dist, dim=1)
 
         # context
         context = torch.einsum('bik,bij->bkj',self.weights,VALUE_scale)
-
+        
         # output
         res = self.dropout(self.Wo(context))
 
@@ -667,10 +671,10 @@ class NWnnSDP(torch.nn.Module):
             return res
 
 
-class NWnnSDP2(torch.nn.Module):
+class dpnn4(torch.nn.Module):
     def __init__(self,input_k, input_q, input_v, hidden_size, dropout=0.1):
         '''
-        NWnnSDP2 is an adaptive distance attention model. It is based on the dot product between the key and query tensors.
+        dpnn3 is an adaptive attention model using on the dot product between the key and query tensors.
         Network X and network Y observes two different phenomena. In addition, a multiplicative parameter is used to predict the output.
         Multilayer perceptrons are involved into the learnable parameters.
 
@@ -699,7 +703,7 @@ class NWnnSDP2(torch.nn.Module):
             dropout:
             Probability for the dropout; By default, dropout = 0.1.
         '''
-        super(NWnnSDP2, self).__init__()
+        super(dpnn4, self).__init__()
 
         # W_keys as an MLP
         self.Wk = torch.nn.Sequential(
@@ -752,7 +756,9 @@ class NWnnSDP2(torch.nn.Module):
         self.weights = torch.nn.functional.softmax(dist, dim=1)
 
         # context
-        context = torch.einsum('bik,bij->bjk',self.weights,VALUE_scale)
+        # context = torch.einsum('bik,bij->bjk',self.weights,VALUE_scale)
+        context = torch.einsum('bik,bij->bkj',self.weights,VALUE_scale)
+        # context_scaled = torch.einsum('bij,bij->bij',context , Wo)
 
         # output
         res = self.dropout(self.Wo(context))

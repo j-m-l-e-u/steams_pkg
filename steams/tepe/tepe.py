@@ -160,7 +160,7 @@ def prediction_prime(obj,class_data,resdir=None):
         tmp = torch.concat((QUERY_X_unscaled, VALUE_X_unscaled,VALUE_X_pred_unscaled),1).cpu().numpy()
         tmp_df = pd.DataFrame(tmp,columns=class_data.QUERY+class_data.VALUE_X+pred_name)
 
-        results = results.append(tmp_df,ignore_index=True)
+        results = pd.concat([results,tmp_df],ignore_index=True,axis=0)
 
     class_data.scale(False)
 
@@ -193,7 +193,7 @@ def ensemble_prime(obj,class_data,N,q=[0.05, 0.5, 0.95],resdir=None):
     pred_name = ['pred_' + v for v in class_data.VALUE_X]
     results = pd.DataFrame(columns=class_data.QUERY+class_data.VALUE_X+pred_name)
     for n in range(1,N,1):
-        results = results.append(prediction_prime(obj,class_data,resdir=None),ignore_index=True)
+        results = pd.concat([results,prediction_prime(obj,class_data,resdir=None)],ignore_index=True,axis=0)
 
     for v in class_data.VALUE_X:
         results.loc[:,'p_'+v] = results.loc[:,v]<=results.loc[:,'pred_'+v]

@@ -8,10 +8,10 @@ The weight of the attention are based either on the Ordinary Kriging equation sy
 
 We use `Pytorch` to train the learnable parameters.
 
-## Install from PyPi
+<!-- ## Install from PyPi
 ```bash
 pip install steams
-```
+``` -->
 
 
 ## install from source
@@ -22,7 +22,7 @@ cd steams_pkg
 pip3 install -e .
 ```
 
-Package `steams` has been tested on python 3.8 and 3.9
+Package `steams` has been tested on python 3.10
 
 Running `steams` with CUDA (v11.3), requires a manual installation of `Pytorch`:
 ```bash
