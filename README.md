@@ -1,17 +1,15 @@
 # steams
 
-Space-time prediction with sparse and irregular space-time multi-timeseries.
+Space-time prediction with sparse and irregular space-time multi-timeseries data fusion.
 
-Models presented in this packages are using an *adaptive distance attention mechanism*.
 
-The weight of the attention are based either on the Ordinary Kriging equation system or the Nadaraya-Watson Kernel.
+Attention-based and transforemer-based data fusion.
 
-We use `Pytorch` to train the learnable parameters.
+- kriging and Nadaraya-Watson w/ weight described as a constant or non-constant over space
+- dot prod attention
+- transformer encoder
+- transformer encoder-decoder
 
-<!-- ## Install from PyPi
-```bash
-pip install steams
-``` -->
 
 
 ## install from source
@@ -24,9 +22,5 @@ pip3 install -e .
 
 Package `steams` has been tested on python 3.10
 
-Running `steams` with CUDA (v11.3), requires a manual installation of `Pytorch`:
-```bash
-pip3 install torch==1.11.0+cu113 -f https://download.pytorch.org/whl/cu113/torch_stable.html
-```
 
 This package was initially developed while working at NILU. The repo has been transferred here. This is now the official repo.
