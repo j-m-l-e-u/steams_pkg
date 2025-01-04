@@ -361,15 +361,92 @@ class madsnn3(nn.Module):
         Wo = self.Wo(QUERY)  # with QUERY
 
         # scaling
-        # KEY_scaled = torch.einsum('bij,bij->bij',KEY , Wk)
-        # QUERY_scaled = torch.einsum('bij,bij->bij',QUERY , Wq)
-        # context = self.attention.pred(KEY_scaled,VALUE,QUERY_scaled)
         context = self.attention.pred(Wk,VALUE,Wq)
 
         context_scaled = torch.einsum('bij,bij->bij',context , Wo)
 
         # output
         res = self.dropout(context_scaled)
+
+        return res
+
+class madsnn4(nn.Module):
+    def __init__(self,device,type,kernel,input_k,input_q, input_v, hidden_size,dropout=0.1):
+        '''
+        madsnn3 is an adaptive distance attention model. It is either based on the kriging equation system or the Nadaray-Watson kernel.
+        Network X and network Y observes two different phenomena. In addition, a multiplicative parameter is used to predict the output.
+        Multilayer perceptrons are involved into the learnable parameters.
+
+        Args:
+            device:
+            Determined with torch.device()
+
+            type:
+            Determines either the krigin sytem or the Nadaraya-Watson Kernel: 'krig' or 'nwd'.
+
+            kernel:
+            Deternines either Gaussian kernel or Exponential; 'gauss', 'exp'.
+
+            input_k:
+            Number of keys as input.
+
+            input_q:
+            Number of queries as input.
+
+            input_v:
+            Number of values as input.
+
+            hidden_size:
+            Number of hidden layers.
+
+            dropout:
+            Probability for the dropout; By default, dropout = 0.1.
+        '''
+        super(madsnn4, self).__init__()
+
+        if type == "krig":
+            self.attention = class_krig(device,kernel)
+        elif type == "nwd":
+            self.attention = class_nwd(device,kernel)
+        else:
+             raise ValueError("Attention type not recognized")
+
+        self.Wk = nn.Sequential(
+            nn.Linear(input_k, hidden_size),
+            nn.ReLU(),
+            nn.Linear(hidden_size, hidden_size),
+            nn.ReLU(),
+            nn.Linear(hidden_size, hidden_size))
+
+        self.Wq = nn.Sequential(
+            nn.Linear(input_q, hidden_size),
+            nn.ReLU(),
+            nn.Linear(hidden_size, hidden_size),
+            nn.ReLU(),
+            nn.Linear(hidden_size, hidden_size))
+
+        self.Wv = nn.Sequential(
+            nn.Linear(input_v, hidden_size),
+            nn.ReLU(),
+            nn.Linear(hidden_size, hidden_size),
+            nn.ReLU(),
+            nn.Linear(hidden_size, hidden_size))
+        
+        self.Wo = nn.Linear(hidden_size,input_v)
+
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self,KEY,VALUE,QUERY):
+
+        Wk = self.dropout(self.Wk(KEY))
+        Wq = self.dropout(self.Wq(QUERY))
+        Wv = self.dropout(self.Wv(VALUE))
+
+        # context
+        context = self.attention.pred(Wk,Wv,Wq)
+
+        # output
+        res = self.dropout(self.Wo(context)) # bkl
 
         return res
 
@@ -791,7 +868,107 @@ class dpnn5(nn.Module):
         
         # output
         res = self.dropout(self.Wo(context))
-        # res = self.dropout(context)
+        
+        return res
+
+class mha(torch.nn.Module):
+    
+    def __init__(self,input_k, input_q, input_v, hidden_size, num_heads=1,dropout=0.1):
+        '''
+        mha is an adaptive multi-head attention model using on the dot product between key and query tensors.
+        Network X and network Y observes two different phenomena. In addition, a multiplicative parameter is used to predict the output.
+        Multilayer perceptrons are involved into the learnable parameters.
+        
+
+        Args:
+            
+            input_k:
+            Number of keys as input.
+
+            input_q:
+            Number of queries as input.
+
+            input_v:
+            Number of values as input.
+
+            hidden_size:
+            Number of hidden layers.
+
+            num_heads:
+            Number of heads.
+
+            dropout:
+            Probability for the dropout; By default, dropout = 0.1.
+        '''
+        super(mha, self).__init__()
+
+        assert hidden_size % num_heads == 0, "Hidden size must be 0 modulo number of heads."
+
+        self.num_heads = num_heads
+
+        # W_keys as an MLP
+        self.Wk = nn.Sequential(
+            nn.Linear(input_k, hidden_size),
+            nn.ReLU(),
+            nn.Linear(hidden_size, hidden_size),
+            nn.ReLU(),
+            nn.Linear(hidden_size, hidden_size),
+            )
+
+        # W_queries as an MLP
+        self.Wq = nn.Sequential(
+            nn.Linear(input_q, hidden_size),
+            nn.ReLU(),
+            nn.Linear(hidden_size, hidden_size),
+            nn.ReLU(),
+            nn.Linear(hidden_size, hidden_size),
+            )
+
+        # W_values as an MLP
+        self.Wv = nn.Sequential(
+            nn.Linear(input_v, hidden_size),
+            nn.ReLU(),
+            nn.Linear(hidden_size, hidden_size),
+            nn.ReLU(),
+            nn.Linear(hidden_size, hidden_size),
+            )
+
+        # W_ouput
+        self.Wo = nn.Linear(hidden_size,input_v)
+
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self,KEY,VALUE,QUERY):
+
+        Wk = self.dropout(self.Wk(KEY))
+        Wq = self.dropout(self.Wq(QUERY))
+        Wv = self.dropout(self.Wv(VALUE))
+
+
+        # reshaping into a multi-head
+        Wk = torch.reshape(Wk,(Wk.shape[0], Wk.shape[1], int(Wk.shape[2]/self.num_heads), self.num_heads)) #bi(j/h)h 
+        Wk = Wk.permute(0,3,1,2) # bhi(j/h)
+        Wq = torch.reshape(Wq,(Wq.shape[0], Wq.shape[1], int(Wq.shape[2]/self.num_heads), self.num_heads)) #bk(j/h)h 
+        Wq = Wq.permute(0,3,1,2) # bhk(j/h)
+        Wv = torch.reshape(Wv,(Wv.shape[0], Wv.shape[1], int(Wv.shape[2]/self.num_heads), self.num_heads)) #bi(j/h)h 
+        Wv = Wv.permute(0,3,1,2) # bhi(j/h)
+
+        # score: dot prod between Wk and Wq
+        d_wk = Wq.shape[-1]
+        score = torch.einsum('bhij,bhkj->bhik',Wk,Wq)/math.sqrt(d_wk) #bhik
+
+        # attention weight
+        self.weights = torch.nn.functional.softmax(score, dim=3) #bhik
+
+        # context
+        context = torch.einsum('bhik,bhij->bhkj',self.weights,Wv) # bh(j/h)k     
+
+        # Concatenating heads 
+        context = context.permute(0, 2, 1, 3)  # b(j/h)hk
+        context = context.reshape(context.shape[0], context.shape[1], context.shape[2]*context.shape[3]) # bjk
+
+        # output
+        res = self.dropout(self.Wo(context)) # bkl
 
         return res
 
@@ -800,7 +977,7 @@ class dpnn6(nn.Module):
         '''
         dpnn6 is an adaptive attention model using on the dot product between the key and query tensors.
         Network X and network Y observes two different phenomena. In addition, a multiplicative parameter is used to predict the output.
-        Multilayer perceptrons are involved into the learnable parameters.
+        Linear functions are involved into the learnable parameters.
 
         Args:
             
