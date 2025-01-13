@@ -73,7 +73,7 @@ class EncoderTransformer2(nn.Module):
 
         # Self-Attention layer
         input_size = input_k + input_q + input_v
-        
+
         self.transformer_blocks = nn.ModuleList(
             [EncoderTransformerBlock(input_size, hidden_size, num_heads,dim_feedforward) for _ in range(num_blk)]
         )
@@ -84,7 +84,6 @@ class EncoderTransformer2(nn.Module):
     def forward(self, K,V,Q):
 
         X = torch.cat((K,V,Q),dim=2)
-
         self.attention_weights = [None]*len(self.transformer_blocks)
         for i, blk in enumerate(self.transformer_blocks):
             X = blk(X)
@@ -94,6 +93,29 @@ class EncoderTransformer2(nn.Module):
         output = self.linear(X)
         return output
     
+
+class EncoderTransformer3(nn.Module):
+    def __init__(self, input_k, input_q, input_v, nb_variable,embedding_dim,hidden_size,num_heads,dim_feedforward,num_blk,dropout=0.1):
+        super().__init__()
+        
+        self.variable_embedding = nn.Embedding(nb_variable, embedding_dim)
+        
+        self.transformer = EncoderTransformer2(input_k=input_k+embedding_dim, input_q=input_q+embedding_dim, input_v=input_v,hidden_size=hidden_size,num_heads=num_heads,dim_feedforward=dim_feedforward,num_blk=num_blk,dropout=dropout)
+        
+
+    def forward(self, K,K_v,V,Q,Q_v):
+
+        K_v_embedded = self.variable_embedding(K_v.int())
+        Q_v_embedded = self.variable_embedding(Q_v.int())
+
+        K_v_embedded = torch.reshape(K_v_embedded,(K_v_embedded.shape[0],K_v_embedded.shape[1],K_v_embedded.shape[2]*K_v_embedded.shape[3]))
+        Q_v_embedded = torch.reshape(Q_v_embedded,(Q_v_embedded.shape[0],Q_v_embedded.shape[1],Q_v_embedded.shape[2]*Q_v_embedded.shape[3]))
+
+        K_new = torch.cat((K,K_v_embedded),dim=2)
+        Q_new= torch.cat((Q,Q_v_embedded),dim=2)
+
+        output = self.transformer(K_new,V,Q_new)
+        return output
 
 class Transf_enc_dec(nn.Module):
     def __init__(self, input_k, input_q, input_v, hidden_size,num_heads,dim_feedforward,num_blk,dropout=0.1):
