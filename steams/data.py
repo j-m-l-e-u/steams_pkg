@@ -8,9 +8,6 @@ import os
 from torch.utils.data import Dataset
 
 
-
-# import polars as pl
-
 #     def batch_generator(self, batch_size):
 #         """
 #         Yields batches of sampled data.
@@ -28,6 +25,51 @@ from torch.utils.data import Dataset
 #                 torch.stack(QUERY),
 #                 torch.stack(VALUE_X),
 #             )
+
+
+import torch
+from torch.utils.data import Dataset
+
+class KVyQVx_mv(Dataset):
+    def __init__(self, datasets: list):
+        """
+        A dataset class that combines multiple KVyQVx datasets.
+
+        Args:
+            datasets (list): A list of KVyQVx dataset instances.
+            
+        """
+        self.datasets = datasets
+        
+        
+    def scale(self, apply_scaling: bool):
+        for dataset in self.datasets:
+            dataset.scale(apply_scaling=apply_scaling)
+
+    def __getitem__(self, idx):
+        """
+        Fetches data from all datasets for the given index.
+
+        Args:
+            idx (int): The index of the item to fetch.
+
+        Returns:
+            list of tuples: A list where each tuple contains 
+                            (KEY_data, VALUE_Y_data, QUERY_data, VALUE_X_data)
+                            for one dataset.
+        """
+        results = []
+        for dataset in self.datasets:
+            data = dataset[idx]
+            results.append(data)
+        return results
+    
+    def __len__(self):
+        results = []
+        for dataset in self.datasets:
+            data = len(dataset) 
+            results.append(data)
+        return min(results)
 
 
 class KVyQVx(Dataset):
@@ -58,6 +100,11 @@ class KVyQVx(Dataset):
         self.KEY = params['Y']['KEY']
         self.df_KEY = self.tmp_Y.loc[:, self.KEY]
         self.tensor_KEY = torch.tensor(self.df_KEY.values, dtype=torch.float32)
+
+        # Non-numerical columns
+        self.KEY_cat = params['Y'].get('KEY_cat', [])
+        self.df_KEY_cat = self.tmp_Y.loc[:, self.KEY_cat]
+        self.tensor_KEY_cat = torch.tensor(self.df_KEY_cat.values, dtype=torch.float32)
 
         self.VALUE_Y = params['Y']['VALUE']
         self.df_VALUE_Y = self.tmp_Y.loc[:, self.VALUE_Y]
@@ -93,6 +140,11 @@ class KVyQVx(Dataset):
         self.QUERY = params['X']['QUERY']
         self.df_QUERY = self.tmp_X.loc[:, self.QUERY]
         self.tensor_QUERY = torch.tensor(self.df_QUERY.values, dtype=torch.float32)
+
+        # Non-numerical columns
+        self.QUERY_cat = params['X'].get('QUERY_cat', [])
+        self.df_QUERY_cat = self.tmp_Y.loc[:, self.QUERY_cat]
+        self.tensor_QUERY_cat = torch.tensor(self.df_QUERY_cat.values, dtype=torch.float32)
 
         self.VALUE_X = params['X']['VALUE']
         self.df_VALUE_X = self.tmp_X.loc[:, self.VALUE_X]
@@ -147,6 +199,7 @@ class KVyQVx(Dataset):
         sampled_indices_X = torch.randint(start_X, min(end_X, self.len_VALUE_X), (self.nb_sampling_X,))
 
         QUERY_data = self.tensor_QUERY[sampled_indices_X]
+        QUERY_cat = self.tensor_QUERY_cat[sampled_indices_X]
         VALUE_X_data = self.tensor_VALUE_X[sampled_indices_X]
         
         # Key and VALUE_Y Sampling
@@ -156,9 +209,10 @@ class KVyQVx(Dataset):
         sampled_indices_Y = torch.randint(start_Y, min(end_Y, self.len_VALUE_Y), (self.nb_sampling_Y,))
 
         KEY_data = self.tensor_KEY[sampled_indices_Y]
+        KEY_cat = self.tensor_KEY_cat[sampled_indices_Y]
         VALUE_Y_data = self.tensor_VALUE_Y[sampled_indices_Y]
         
-        return KEY_data, VALUE_Y_data, QUERY_data, VALUE_X_data
+        return KEY_data, KEY_cat, VALUE_Y_data, QUERY_data,QUERY_cat, VALUE_X_data
 
     def __len__(self) -> int:
         return len(self.indice_X) - self.nb_location_X*(self.history_length_Y + self.gap_length_X + self.horizon_length_X)
@@ -183,3 +237,5 @@ class KVyQVx(Dataset):
         else:
             print('datatype either KEY, VALUE_Y, QUERY or VALUE_X')
         return res
+
+
