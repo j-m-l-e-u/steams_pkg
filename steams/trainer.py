@@ -145,22 +145,43 @@ def prediction_prime(obj,class_data,resdir=None):
 
     nrow = len(class_data)
     pred_name = ['pred_' + v for v in class_data.VALUE_X]
-    results = pd.DataFrame(columns=class_data.QUERY+class_data.VALUE_X+pred_name)
-    for i in range(1,nrow,1):
-        KEY_Y, VALUE_Y, QUERY_X, VALUE_X = class_data[i]
 
-        QUERY_X_unscaled, VALUE_X_pred_unscaled = obj.predict(KEY_Y,VALUE_Y,QUERY_X,class_data)
+    if (obj.__class__.__name__ == 'AttentionTrainer'):
+        results = pd.DataFrame(columns=class_data.QUERY+class_data.VALUE_X+pred_name)
+        for i in range(1,nrow,1):
+            KEY_Y, _, VALUE_Y, QUERY_X, _, VALUE_X = class_data[i]
 
-        #unscale VALUE_X
-        VALUE_X_unscaled = class_data.unscale(VALUE_X.detach(),"VALUE_X").to(obj.device)
+            QUERY_X_unscaled, VALUE_X_pred_unscaled = obj.predict(KEY_Y,VALUE_Y,QUERY_X,class_data)
 
-        QUERY_X_unscaled = torch.reshape(QUERY_X_unscaled,(QUERY_X_unscaled.shape[1],QUERY_X_unscaled.shape[2]))
-        VALUE_X_pred_unscaled = torch.reshape(VALUE_X_pred_unscaled,(VALUE_X_pred_unscaled.shape[1],VALUE_X_pred_unscaled.shape[2]))
+            #unscale VALUE_X
+            VALUE_X_unscaled = class_data.unscale(VALUE_X.detach(),"VALUE_X").to(obj.device)
 
-        tmp = torch.concat((QUERY_X_unscaled, VALUE_X_unscaled,VALUE_X_pred_unscaled),1).cpu().numpy()
-        tmp_df = pd.DataFrame(tmp,columns=class_data.QUERY+class_data.VALUE_X+pred_name)
+            QUERY_X_unscaled = torch.reshape(QUERY_X_unscaled,(QUERY_X_unscaled.shape[1],QUERY_X_unscaled.shape[2]))
+            VALUE_X_pred_unscaled = torch.reshape(VALUE_X_pred_unscaled,(VALUE_X_pred_unscaled.shape[1],VALUE_X_pred_unscaled.shape[2]))
 
-        results = pd.concat([results,tmp_df],ignore_index=True,axis=0)
+            tmp = torch.concat((QUERY_X_unscaled, VALUE_X_unscaled,VALUE_X_pred_unscaled),1).cpu().numpy()
+            tmp_df = pd.DataFrame(tmp,columns=class_data.QUERY+class_data.VALUE_X+pred_name)
+
+            results = pd.concat([results,tmp_df],ignore_index=True,axis=0)
+
+    elif (obj.__class__.__name__ == 'AttentionEmbTrainer'):
+        results = pd.DataFrame(columns=class_data.QUERY+class_data.QUERY_cat+class_data.VALUE_X+pred_name)
+        for i in range(1,nrow,1):
+            KEY_Y, KEY_cat_Y, VALUE_Y, QUERY_X, QUERY_cat_X, VALUE_X = class_data[i]
+
+            QUERY_X_unscaled, QUERY_cat_X,VALUE_X_pred_unscaled = obj.predict(KEY_Y,KEY_cat_Y,VALUE_Y,QUERY_X,QUERY_cat_X,class_data)
+
+            #unscale VALUE_X
+            VALUE_X_unscaled = class_data.unscale(VALUE_X.detach(),"VALUE_X").to(obj.device)
+
+            QUERY_X_unscaled = torch.reshape(QUERY_X_unscaled,(QUERY_X_unscaled.shape[1],QUERY_X_unscaled.shape[2]))
+            QUERY_cat_X = torch.reshape(QUERY_cat_X,(QUERY_cat_X.shape[1],QUERY_cat_X.shape[2]))
+            VALUE_X_pred_unscaled = torch.reshape(VALUE_X_pred_unscaled,(VALUE_X_pred_unscaled.shape[1],VALUE_X_pred_unscaled.shape[2]))
+
+            tmp = torch.concat((QUERY_X_unscaled, QUERY_cat_X, VALUE_X_unscaled,VALUE_X_pred_unscaled),1).cpu().numpy()
+            tmp_df = pd.DataFrame(tmp,columns=class_data.QUERY+class_data.QUERY_cat+class_data.VALUE_X+pred_name)
+
+            results = pd.concat([results,tmp_df],ignore_index=True,axis=0)
 
     class_data.scale(False)
 
@@ -191,23 +212,43 @@ def ensemble_prime(obj,class_data,N,q=[0.05, 0.5, 0.95],resdir=None):
     '''
 
     pred_name = ['pred_' + v for v in class_data.VALUE_X]
-    results = pd.DataFrame(columns=class_data.QUERY+class_data.VALUE_X+pred_name)
-    for n in range(1,N,1):
-        results = pd.concat([results,prediction_prime(obj,class_data,resdir=None)],ignore_index=True,axis=0)
 
-    for v in class_data.VALUE_X:
-        results.loc[:,'p_'+v] = results.loc[:,v]<=results.loc[:,'pred_'+v]
+    if (obj.__class__.__name__ == 'AttentionTrainer'):
+        results = pd.DataFrame(columns=class_data.QUERY+class_data.VALUE_X+pred_name)
+        for n in range(1,N,1):
+            results = pd.concat([results,prediction_prime(obj,class_data,resdir=None)],ignore_index=True,axis=0)
 
-    # quantile of the predictions
-    ensemble_quantile = results.groupby(class_data.QUERY)[pred_name].agg([lambda x: np.quantile(x,q=0.05), lambda x: np.quantile(x,q=0.5),lambda x: np.quantile(x,q=0.95)]).rename(
-        columns={"<lambda_0>": "q0_05", "<lambda_1>": "q0_5", "<lambda_2>": "q0_95"})
+        for v in class_data.VALUE_X:
+            results.loc[:,'p_'+v] = results.loc[:,v]<=results.loc[:,'pred_'+v]
 
-    # observations
-    ensemble_observations = results.groupby(class_data.QUERY)[class_data.VALUE_X].agg([np.size,np.mean])
+        # quantile of the predictions
+        ensemble_quantile = results.groupby(class_data.QUERY)[pred_name].agg([lambda x: np.quantile(x,q=0.05), lambda x: np.quantile(x,q=0.5),lambda x: np.quantile(x,q=0.95)]).rename(
+            columns={"<lambda_0>": "q0_05", "<lambda_1>": "q0_5", "<lambda_2>": "q0_95"})
 
-    # p_value of VALUE_X among the predictions
-    p_name = ['p_' + v for v in class_data.VALUE_X]
-    ensemble_pvalue =results.groupby(class_data.QUERY)[p_name].aggregate(np.mean)
+        # observations
+        ensemble_observations = results.groupby(class_data.QUERY)[class_data.VALUE_X].agg([np.size,np.mean])
+
+        # p_value of VALUE_X among the predictions
+        p_name = ['p_' + v for v in class_data.VALUE_X]
+        ensemble_pvalue =results.groupby(class_data.QUERY)[p_name].aggregate(np.mean)
+    elif (obj.__class__.__name__ == 'AttentionEmbTrainer'):
+        results = pd.DataFrame(columns=class_data.QUERY+class_data.QUERY_cat+class_data.VALUE_X+pred_name)
+        for n in range(1,N,1):
+            results = pd.concat([results,prediction_prime(obj,class_data,resdir=None)],ignore_index=True,axis=0)
+
+        for v in class_data.VALUE_X:
+            results.loc[:,'p_'+v] = results.loc[:,v]<=results.loc[:,'pred_'+v]
+
+        # quantile of the predictions
+        ensemble_quantile = results.groupby(class_data.QUERY+class_data.QUERY_cat)[pred_name].agg([lambda x: np.quantile(x,q=0.05), lambda x: np.quantile(x,q=0.5),lambda x: np.quantile(x,q=0.95)]).rename(
+            columns={"<lambda_0>": "q0_05", "<lambda_1>": "q0_5", "<lambda_2>": "q0_95"})
+
+        # observations
+        ensemble_observations = results.groupby(class_data.QUERY+class_data.QUERY_cat)[class_data.VALUE_X].agg([np.size,np.mean])
+
+        # p_value of VALUE_X among the predictions
+        p_name = ['p_' + v for v in class_data.VALUE_X]
+        ensemble_pvalue =results.groupby(class_data.QUERY+class_data.QUERY_cat)[p_name].aggregate(np.mean)
 
     ensemble = pd.concat([ensemble_observations,ensemble_pvalue,ensemble_quantile,],axis=1)
 
@@ -289,7 +330,7 @@ class AttentionTrainer(BaseTrainer):
         '''
         running_loss = 0.0
         self.model.train()
-        for i, (KEY_Y,VALUE_Y,QUERY_X,VALUE_X) in enumerate(data_loader):
+        for i, (KEY_Y,_,VALUE_Y,QUERY_X,_,VALUE_X) in enumerate(data_loader):
 
             KEY_Y = KEY_Y.to(self.device)
             VALUE_Y = VALUE_Y.to(self.device)
@@ -320,7 +361,7 @@ class AttentionTrainer(BaseTrainer):
         self.model.eval()
         with torch.no_grad():
             running_loss = 0.0
-            for i, (KEY_Y,VALUE_Y,QUERY_X,VALUE_X) in enumerate(data_loader):
+            for i, (KEY_Y,_,VALUE_Y,QUERY_X,_,VALUE_X) in enumerate(data_loader):
 
                 KEY_Y = KEY_Y.to(self.device)
                 VALUE_Y = VALUE_Y.to(self.device)
@@ -347,7 +388,7 @@ class AttentionTrainer(BaseTrainer):
         self.model.eval()
         with torch.no_grad():
             running_loss = 0.0
-            for i, (KEY_Y,VALUE_Y,QUERY_X,VALUE_X) in enumerate(data_loader):
+            for i, (KEY_Y,_,VALUE_Y,QUERY_X,_,VALUE_X) in enumerate(data_loader):
                 KEY_Y = KEY_Y.to(self.device)
                 VALUE_Y = VALUE_Y.to(self.device)
                 QUERY_X = QUERY_X.to(self.device)
@@ -396,3 +437,152 @@ class AttentionTrainer(BaseTrainer):
             QUERY_X_unscaled = class_data.unscale(QUERY_X.detach(),"QUERY").to(self.device)
 
         return QUERY_X_unscaled, VALUE_X_pred_unscaled
+
+class AttentionEmbTrainer(BaseTrainer):
+    def __init__(self,model,device):
+        '''
+        attention_steams provide function train, loss, evaluation and prediction for additive attention.
+
+        Args:
+            model:
+            Model of class torch.nn.Module
+
+            device:
+            Determined with torch.device()
+        '''
+
+        super(AttentionEmbTrainer, self).__init__(model,device)
+
+    def single_train(self,data_loader):
+        '''
+        The function trains the model architecture for one epoch.
+
+        Args:
+            data_loader:
+            Data loader based on the KVyQVx data sampler.
+        '''
+        running_loss = 0.0
+        self.model.train()
+        for i, (KEY_Y,KEY_cat_Y,VALUE_Y,QUERY_X,QUERY_cat_X,VALUE_X) in enumerate(data_loader):
+
+            KEY_Y = KEY_Y.to(self.device)
+            KEY_cat_Y = KEY_cat_Y.to(self.device)
+            VALUE_Y = VALUE_Y.to(self.device)
+            QUERY_X = QUERY_X.to(self.device)
+            QUERY_cat_X = QUERY_cat_X.to(self.device)
+            VALUE_X = VALUE_X.to(self.device)
+
+            self.optimizer.zero_grad()
+            output = self.model(KEY_Y.float() ,KEY_cat_Y.int() ,VALUE_Y.float() ,QUERY_X.float(),QUERY_cat_X.int() )
+            loss_ = self.criterion(VALUE_X.float(),output)
+            loss_.backward()
+            self.optimizer.step()
+            #self.scheduler_lr.step()
+
+            if torch.isnan(loss_) or loss_ == float('inf'):
+                raise ValueError("Error: Infinite or NaN loss detected.")
+            running_loss += loss_.item()
+        avg_loss = running_loss / (float(i)+1.)
+        return avg_loss
+
+    def loss(self,data_loader):
+        '''
+        The function provides the loss for one epoch. It provides metrics for scaled data.
+
+        Args:
+            data_loader:
+            Data loader based on the KVyQVx data sampler.
+        '''
+        self.model.eval()
+        with torch.no_grad():
+            running_loss = 0.0
+            for i, (KEY_Y,KEY_cat_Y,VALUE_Y,QUERY_X,QUERY_cat_X,VALUE_X) in enumerate(data_loader):
+
+                KEY_Y = KEY_Y.to(self.device)
+                KEY_cat_Y = KEY_cat_Y.to(self.device)
+                VALUE_Y = VALUE_Y.to(self.device)
+                QUERY_X = QUERY_X.to(self.device)
+                QUERY_cat_X = QUERY_cat_X.to(self.device)
+                VALUE_X = VALUE_X.to(self.device)
+
+                output = self.model(KEY_Y.float() ,KEY_cat_Y.int() ,VALUE_Y.float() ,QUERY_X.float(),QUERY_cat_X.int() )
+                loss_ = self.criterion(VALUE_X.float(),output)
+                running_loss += loss_.item()
+            avg_loss = running_loss / (float(i)+1.)
+        return avg_loss
+
+    def evaluation(self, data_loader, class_data):
+        '''
+        The function evaluates the model architecture for one epoch. It provides metrics for unscaled data.
+
+        Args:
+            data_loader:
+            Data loader based on the KVyQVx data sampler.
+
+            class_data:
+            KVyQVx data sampler used to extract scale parameters.
+        '''
+        self.model.eval()
+        with torch.no_grad():
+            running_loss = 0.0
+            for i, (KEY_Y,KEY_cat_Y,VALUE_Y,QUERY_X,QUERY_cat_X,VALUE_X) in enumerate(data_loader):
+                
+                KEY_Y = KEY_Y.to(self.device)
+                KEY_cat_Y = KEY_cat_Y.to(self.device)
+                VALUE_Y = VALUE_Y.to(self.device)
+                QUERY_X = QUERY_X.to(self.device)
+                QUERY_cat_X = QUERY_cat_X.to(self.device)
+                VALUE_X = VALUE_X.to(self.device)
+
+                output = self.model(KEY_Y.float() ,KEY_cat_Y.int() ,VALUE_Y.float() ,QUERY_X.float(),QUERY_cat_X.int() )
+
+                #unscale
+                output_unscale = class_data.unscale(output,"VALUE_X").to(self.device)
+                VALUE_X_unscale = class_data.unscale(VALUE_X,"VALUE_X").to(self.device)
+
+                loss_ = self.criterion( VALUE_X_unscale.float(),output_unscale)
+                running_loss += loss_.item()
+
+            avg_loss = running_loss / (float(i)+1.)
+        return avg_loss
+
+    def predict(self, KEY_Y,KEY_cat_Y,VALUE_Y,QUERY_X,QUERY_cat_X,class_data):
+        '''
+        The function infers the model arhcitecture. The output are unscaled.
+
+        Args:
+            KEY_Y:
+            Tensor Key of dimension (nb_points,input_k)
+
+            KEY_cat_Y:
+            Tensor categorical Key of dimension (nb_points,input_k)
+
+            VALUE_Y:
+            Tensor Values related to the keys of dimension (nb_points,input_v)
+
+            QUERY_X:
+            Tensor Query of dimension (nb_points,input_q)
+
+            QUERY_X:
+            Tensor categorical Query of dimension (nb_points,input_q)
+
+            class_data:
+            KVyQVx data sampler used to extract scale parameters.
+        '''
+        self.model.eval()
+        with torch.no_grad():
+
+            # Input reshaping for batch inference
+
+            KEY_Y = KEY_Y.to(self.device).unsqueeze(0)
+            KEY_cat_Y = KEY_cat_Y.to(self.device).unsqueeze(0)
+            VALUE_Y = VALUE_Y.to(self.device).unsqueeze(0)
+            QUERY_X = QUERY_X.to(self.device).unsqueeze(0)
+            QUERY_cat_X = QUERY_cat_X.to(self.device).unsqueeze(0)
+            
+            VALUE_X_pred = self.model(KEY_Y.float() ,KEY_cat_Y.int() ,VALUE_Y.float() ,QUERY_X.float(),QUERY_cat_X.int() ).detach()
+
+            VALUE_X_pred_unscaled = class_data.unscale(VALUE_X_pred,"VALUE_X").to(self.device)
+            QUERY_X_unscaled = class_data.unscale(QUERY_X.detach(),"QUERY").to(self.device)
+
+        return QUERY_X_unscaled,QUERY_cat_X, VALUE_X_pred_unscaled
